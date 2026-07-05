@@ -18,6 +18,7 @@ const initialState = {
   reconnecting: false,
   reconnectFailed: false,
   connectionStatus: 'connecting',
+  placementError: null,
 };
 
 function reducer(state, action) {
@@ -30,7 +31,13 @@ function reducer(state, action) {
     case 'ROOM_READY':
       localStorage.setItem('lastship_player_token', action.playerToken);
       localStorage.setItem('lastship_room_code', action.roomCode);
-      return { ...state, roomCode: action.roomCode, playerSlot: action.playerSlot, screen: 'placement' };
+      return { ...state, roomCode: action.roomCode, playerSlot: action.playerSlot, screen: 'placement', placementError: null };
+
+    case 'PLACEMENT_ACCEPTED':
+      return { ...state, screen: 'placed' };
+
+    case 'PLACEMENT_ERROR':
+      return { ...state, placementError: action.reason };
 
     case 'GAME_START':
       return { ...state, screen: 'game', currentTurn: action.firstPlayerSlot, lastShotResult: null };

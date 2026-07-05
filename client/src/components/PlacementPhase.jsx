@@ -127,6 +127,10 @@ export default function PlacementPhase() {
     ]);
   }
 
+  useEffect(() => {
+    if (state.placementError) setSending(false);
+  }, [state.placementError]);
+
   function handleReady() {
     setSending(true);
     dispatch({ type: 'UPDATE_PLACEMENTS', placements });
@@ -196,6 +200,9 @@ export default function PlacementPhase() {
         </div>
       </DndContext>
 
+      {state.placementError && (
+        <p className="error-banner">{state.placementError}</p>
+      )}
       <div className="placement-actions">
         {placedNames.size === FLEET_CONFIG.length && (
           <button onClick={handleReady} className="btn-primary" disabled={sending}>
