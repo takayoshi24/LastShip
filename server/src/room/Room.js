@@ -138,7 +138,7 @@ export class Room {
   }
 
   _scheduleBotShot() {
-    const delay = 300 + Math.random() * 500;
+    const delay = 1000 + Math.random() * 500;
     setTimeout(() => {
       if (this.state !== 'active') return;
       const target = getNextShot(this.boards[0], this.sunkShips[0]);
