@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on master (session 3)
+
+**Scope:** Bug fix — private room placement starts before opponent joins (PR #36)
+
+### 1e486c2 — fix: show waiting screen after creating private room until opponent joins (#36)
+
+- **Author:** takayoshi24
+- **Date:** 2026-07-05
+- **Hash:** `1e486c205634b8fe724a16f5d2850aa1091a1d0c`
+
+`CREATE_ROOM` sent `ROOM_READY` immediately, which caused the client to navigate to `/game/` and mount `PlacementPhase` — starting the 60-second countdown — before any opponent had connected. The server's placement timer only starts in `JOIN_ROOM`, so the two timers were never in sync and a player could exhaust their placement time before the opponent even arrived. `CREATE_ROOM` now sends `WAITING_FOR_OPPONENT` instead. The client stores the token/slot and transitions to a new `'waiting'` screen that displays the room URL so the creator can share it. When the second player joins, the server sends `ROOM_READY` to both players simultaneously and `startPlacement()` is called — both timers start at the same moment.
+
+**Files changed:**
+- `client/src/context/GameContext.jsx` +6 / -1
+- `client/src/pages/GamePage.jsx` +9 / -0
+- `client/src/pages/LobbyPage.jsx` +1 / -1
+- `server/src/handlers/messageRouter.js` +1 / -1
+
+**Summary:** Creating a private room immediately dropped the creator into the placement phase with a running countdown, even though no opponent had joined and the server hadn't started its own timer yet. The fix introduces a waiting screen with the shareable room URL; placement — and both timers — only begin once the second player connects.
+
+---
 ## 2026-07-05 — 1 commit on master
 
 **Scope:** Bug fix session — attack animation shared-state bug (PR #35)
