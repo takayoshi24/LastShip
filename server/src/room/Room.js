@@ -120,7 +120,7 @@ export class Room {
     this.boards[targetIndex] = result.board;
     if (result.sunkShip) this.sunkShips[targetIndex].push(result.sunkShip.name);
 
-    const payload = { type: 'SHOT_RESULT', coordinate, result: result.result };
+    const payload = { type: 'SHOT_RESULT', coordinate, result: result.result, shooterSlot: slotIndex + 1 };
     if (result.sunkShip) payload.sunkShip = result.sunkShip;
     this.broadcast(payload);
 
