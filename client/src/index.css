@@ -192,7 +192,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .grid-cell.hit { background: var(--cell-hit); }
 .grid-cell.miss { background: var(--cell-miss); }
 .grid-cell.sunk { background: var(--cell-sunk); }
-.grid-cell.clickable { cursor: crosshair; touch-action: manipulation; }
+.grid-cell.clickable { cursor: pointer; touch-action: manipulation; }
 .grid-cell.clickable:hover { background: var(--accent-dark); }
 .grid-cell.preview-valid { background: var(--cell-preview-valid); }
 .grid-cell.preview-invalid { background: var(--cell-preview-invalid); }

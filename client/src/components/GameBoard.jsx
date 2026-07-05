@@ -143,7 +143,7 @@ export default function GameBoard() {
                     className={`grid-cell ${s} ${clickable ? 'clickable' : ''}`}
                     variants={cellVariants}
                     animate={s}
-                    onClick={() => handleFire(r, c)}
+                    onTap={clickable ? () => handleFire(r, c) : undefined}
                     whileHover={clickable ? { scale: 1.1 } : {}}
                     whileTap={clickable ? { scale: 0.85 } : {}}
                   />
