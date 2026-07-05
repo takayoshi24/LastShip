@@ -22,6 +22,11 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'WAITING_FOR_OPPONENT':
+      localStorage.setItem('lastship_player_token', action.playerToken);
+      localStorage.setItem('lastship_room_code', action.roomCode);
+      return { ...state, roomCode: action.roomCode, playerSlot: action.playerSlot, screen: 'waiting' };
+
     case 'ROOM_READY':
       localStorage.setItem('lastship_player_token', action.playerToken);
       localStorage.setItem('lastship_room_code', action.roomCode);
@@ -46,7 +51,7 @@ function reducer(state, action) {
       const gs = action.gameState;
       return {
         ...state,
-        screen: gs.roomState === 'active' ? 'game' : gs.roomState === 'placement' ? 'placement' : 'lobby',
+        screen: gs.roomState === 'active' ? 'game' : gs.roomState === 'placement' ? 'placement' : gs.roomState === 'waiting' ? 'waiting' : 'lobby',
         myBoard: gs.myBoard,
         attackBoard: gs.attackBoard,
         myPlacements: gs.myPlacements,

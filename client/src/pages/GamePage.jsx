@@ -41,6 +41,15 @@ export default function GamePage() {
     <div className="game-page">
       <RoomInfo roomCode={roomCode} />
       {state.opponentDisconnected && <DisconnectBanner />}
+      {state.screen === 'waiting' && (
+        <div className="panel">
+          <p>Share this link with a friend to start the game:</p>
+          <p style={{ fontFamily: 'monospace', fontSize: '1.1rem', color: 'var(--accent)' }}>
+            {window.location.href}
+          </p>
+          <p className="placement-hint">Waiting for opponent to connect...</p>
+        </div>
+      )}
       {state.screen === 'placement' && <PlacementPhase />}
       {state.screen === 'game' && <GameBoard />}
       {state.screen === 'gameover' && <GameOver />}
