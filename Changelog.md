@@ -1,6 +1,45 @@
 # Changelog
 
 ---
+## 2026-07-05 — 2 commits on master
+
+**Scope:** Quick Match broken + reconnect loses turn ownership; Return and Forfeit buttons added (PRs #42–#43)
+
+### 4ad2260 — feat: add Return (Home) button and Forfeit button
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `4ad2260fdc494d2d9abc4516f95cb512390f9d8c`
+
+Two new controls. **Return (← Home)** in the RoomInfo bar: always visible on every game screen; if the player is in an active game it sends `FORFEIT` first so the opponent gets an immediate win rather than waiting 30 seconds for the disconnect timeout, then resets client state and navigates to the lobby. **Forfeit** in the GameBoard turn-bar: two-step confirmation to prevent accidental taps on mobile — first tap turns the button red and shows "Confirm?" alongside a "Cancel" button; a second tap sends `FORFEIT`; the confirmation auto-cancels after 4 seconds with no action. After forfeiting the opponent wins immediately and both players see the gameover screen so they can play again or return to the lobby. Server adds `Room.forfeit(slotIndex)` which calls `_endGame` with the opponent as winner only if the room is in `active` state, making late or duplicate forfeits no-ops.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +27 / -1
+- `client/src/components/RoomInfo.jsx` +11 / -0
+- `client/src/index.css` +4 / -0
+- `server/src/handlers/messageRouter.js` +8 / -0
+- `server/src/room/Room.js` +5 / -0
+
+---
+
+### 83e0cbb — fix: quick match first player can't fire; reconnect loses playerSlot
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `83e0cbb4d33cfe3df7b30ec4e06e892ce04b4fdd`
+
+Two bugs fixed. **Quick Match**: `enqueueQuickMatch` dequeues the waiting player and sends `ROOM_READY` to both, but `messageRouter` only updated `wsToRoom` for the second (newly arriving) player. The first player kept `roomCode: null`, so every `FIRE` and `PLACE_SHIPS` they sent hit the `NOT_IN_ROOM` guard and was silently dropped — the game was permanently stuck on their turn with neither player able to proceed. Fixed by also registering the waiting player's `wsToRoom` entry when the match is made. **Reconnect**: `RECONNECT_SUCCESS` did not include `playerSlot` in its payload. After a page refresh the React state resets to `null`, so after reconnecting the client's `playerSlot` stayed `null`, `isMyTurn` was always `false`, and the player saw "Opponent's turn" for the rest of the game. Fixed by including `playerSlot: slotIndex + 1` in the server's reconnect response and applying it in the client reducer.
+
+**Files changed:**
+- `client/src/context/GameContext.jsx` +1 / -0
+- `server/src/handlers/messageRouter.js` +4 / -0
+- `server/src/room/Room.js` +1 / -0
+
+---
+
+**Summary:** This batch resolves three blocking issues: Quick Match was completely broken for the first queued player because their server-side room mapping was never updated after a match was made, silently discarding all their in-game actions; reconnecting after a page refresh lost the player's slot identity, causing the turn indicator to permanently show the wrong player's turn; and players had no way to voluntarily end a game or leave a screen. The fixes restore Quick Match parity, harden reconnect state restoration, and add Return and Forfeit controls with mobile-safe confirmation UX.
+
+---
 ## 2026-07-05 — 1 commit on master
 
 **Scope:** Bug fix — tapping attack cells does nothing on iPhone (PR #41)
