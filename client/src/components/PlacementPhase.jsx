@@ -2,15 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
+import { cellsFor } from '../utils/grid.js';
 
 const PLACEMENT_SECS = 60;
-
-function cellsFor(origin, orientation, size) {
-  const [r, c] = origin;
-  return Array.from({ length: size }, (_, i) =>
-    orientation === 'H' ? [r, c + i] : [r + i, c]
-  );
-}
 
 function isValid(origin, orientation, size, occupied) {
   const cells = cellsFor(origin, orientation, size);
