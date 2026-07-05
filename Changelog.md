@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on feat/audio-hit-miss-volume
+
+**Scope:** Sound effects for hit/miss and manual volume control
+
+### feat: explosion sound on hit, water sound on miss, volume slider
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+
+Hit events play `Explosion_Sound_Effect.mp3` and miss events play `Explosion_Water_Sound_Effect.mp3`. Each play spawns a fresh `Audio` instance so sounds overlay each other freely. A volume slider in the turn bar (with mute/unmute icon) controls both sounds; the setting persists via `localStorage`.
+
+**Files changed:**
+- `client/public/audio/` — added `Explosion_Sound_Effect.mp3` and `Explosion_Water_Sound_Effect.mp3`
+- `client/src/components/GameBoard.jsx` — volume state + `explosionAudioRef` as volume store; hit/miss audio playback; `LuVolume2`/`LuVolumeX` slider in turn bar
+- `client/src/index.css` — `.volume-control` and range input styles
+
+---
+
+**Summary:** The game now plays distinct sound effects on hit (explosion) and miss (water splash), with each sound able to overlap itself for rapid fire. A compact volume slider in the turn bar lets players adjust or mute audio at any time, with the preference saved across sessions.
+
+---
 ## 2026-07-05 — 1 commit on feat/ship-icons-and-fleet-legend
 
 **Scope:** Ship cell icons + fleet info in sunk ships panel

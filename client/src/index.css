@@ -301,6 +301,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .timer { font-variant-numeric: tabular-nums; font-size: 1rem; font-weight: 600; }
 .timer.urgent { color: var(--danger); }
 
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 1rem;
+}
+.volume-control input[type="range"] {
+  width: 80px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .boards-container {
   display: flex;
   gap: 48px;
