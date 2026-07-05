@@ -38,6 +38,7 @@ export default function GameBoard() {
   const { state, sendMsg, dispatch } = useGame();
   const canvasRef = useRef(null);
   const gridRef = useRef(null);
+  const attackGridRef = useRef(null);
   const [animatingCells, setAnimatingCells] = useState({});
 
   const isMyTurn = state.currentTurn === state.playerSlot;
@@ -64,8 +65,8 @@ export default function GameBoard() {
       dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
 
       // Show explosion on canvas
-      if (canvasRef.current && gridRef.current) {
-        const gridRect = gridRef.current.getBoundingClientRect();
+      if (canvasRef.current && attackGridRef.current) {
+        const gridRect = attackGridRef.current.getBoundingClientRect();
         const cellSize = gridRect.width / GRID_SIZE;
         const positions = sunkShip.cells.map(([cr, cc]) => ({
           x: gridRect.left + cc * cellSize + cellSize / 2,
@@ -131,7 +132,7 @@ export default function GameBoard() {
 
         <div className="board-section">
           <h3>Your Attack</h3>
-          <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
+          <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} ref={attackGridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
                 const s = getCellState(attackBoard, r, c);
