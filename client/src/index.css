@@ -177,14 +177,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   gap: 2px;
 }
 
-.ships-overlay {
-  position: absolute;
-  top: 0; left: 0;
-  display: grid;
-  gap: 2px;
-  pointer-events: none;
-}
-
 .grid-cell {
   width: 36px;
   height: 36px;
