@@ -9,7 +9,7 @@ export default function LobbyPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (state.screen === 'placement' && state.roomCode) {
+    if ((state.screen === 'placement' || state.screen === 'waiting') && state.roomCode) {
       navigate(`/game/${state.roomCode}`);
     }
   }, [state.screen, state.roomCode, navigate]);

@@ -25,7 +25,7 @@ export function handleMessage(ws, rawData, wsToRoom) {
       const room = createRoom('pvp');
       const { slot, token } = room.addPlayer(ws);
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
-      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token });
+      send(ws, { type: 'WAITING_FOR_OPPONENT', roomCode: room.code, playerSlot: slot, playerToken: token });
       break;
     }
 
