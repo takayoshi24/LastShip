@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on master
+
+**Scope:** Bug fix session — attack animation shared-state bug (PR #35)
+
+### db3e694 — fix: scope shot animations to correct board and block re-firing (#35)
+
+- **Author:** takayoshi24
+- **Date:** 2026-07-05
+- **Hash:** `db3e6949bbd3c09a7ad591662153c8b0dd9f618d`
+
+`animatingCells` was a single shared map applied to both the fleet and attack grids via `getCellState`. Firing at `[r,c]` set `animatingCells["r,c"]` which showed a hit on both boards at that coordinate simultaneously — the user saw two cells light up instead of one. Split into `attackAnimating` (Your Attack grid) and `fleetAnimating` (Your Fleet grid), keyed by `shooterSlot` included in the server's `SHOT_RESULT` broadcast so each client knows which board to update. Also fixed two related bugs: `handleFire` was guarding against re-firing by checking `state.attackBoard` which was never updated during play (every cell always appeared empty, allowing players to fire at already-attacked cells — now checks `attackAnimating` instead); and `ADD_SUNK` always dispatched `targetIndex: oppIndex` regardless of who fired, meaning the defender incorrectly tracked the opponent's sunk list when their own ship was hit.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +37 / -33
+- `server/src/room/Room.js` +1 / -1
+
+**Summary:** A single shared animation map was causing every shot to visually register on both the attack board and the fleet board at the same coordinate, making every hit appear to strike two cells. The fix routes shot results to the correct board based on who fired, simultaneously closing two related bugs: players could repeatedly fire at already-attacked cells (the guard checked a board state that was never updated), and the sunk-ships tracker was crediting the wrong player's list when the opponent scored a hit.
+
+---
 ## 2026-07-05 — 10 commits on master
 
 **Scope:** Code-review session — 4 bug fixes, 2 refactors, 3 dead-code removals, 1 performance improvement (issues #15–#24, PRs #25–#34)
