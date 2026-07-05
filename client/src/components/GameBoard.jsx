@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GiHarryPotterSkull } from 'react-icons/gi';
+import { SiFireship } from 'react-icons/si';
+import { LuEqualApproximately } from 'react-icons/lu';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
@@ -19,6 +22,16 @@ function buildBoardFromPlacements(placements) {
   }
   return board;
 }
+
+const fireShipAnim = {
+  style: { transformOrigin: '50% 100%' },
+  animate: {
+    rotate:  [0, 3, 1, -2, 4, -1, 3, -3, 1, 2, -1, 2, 0],
+    scaleY:  [1, 1.04, 1.08, 1.05, 1.11, 1.06, 1.09, 1.05, 1.07, 1.03, 1.06, 1.02, 1],
+    opacity: [0.85, 0.92, 0.80, 0.96, 0.72, 0.88, 0.95, 0.78, 0.90, 0.85, 0.93, 0.88, 0.85],
+  },
+  transition: { duration: 2.0, repeat: Infinity, ease: 'linear' },
+};
 
 const cellVariants = {
   idle: { scale: 1, backgroundColor: 'var(--cell-empty)' },
@@ -155,7 +168,15 @@ export default function GameBoard() {
                     className={`grid-cell ${s}`}
                     variants={cellVariants}
                     animate={s}
-                  />
+                  >
+                    {s === 'empty' && <LuEqualApproximately className="sea-icon" />}
+                    {s === 'sunk' && <GiHarryPotterSkull className="skull-icon" />}
+                    {s === 'hit' && (
+                      <motion.div className="fire-ship-icon" {...fireShipAnim}>
+                        <SiFireship />
+                      </motion.div>
+                    )}
+                  </motion.div>
                 );
               })
             )}
@@ -178,7 +199,15 @@ export default function GameBoard() {
                     onTap={clickable ? () => handleFire(r, c) : undefined}
                     whileHover={clickable ? { scale: 1.1 } : {}}
                     whileTap={clickable ? { scale: 0.85 } : {}}
-                  />
+                  >
+                    {s === 'empty' && <LuEqualApproximately className="sea-icon" />}
+                    {s === 'sunk' && <GiHarryPotterSkull className="skull-icon" />}
+                    {s === 'hit' && (
+                      <motion.div className="fire-ship-icon" {...fireShipAnim}>
+                        <SiFireship />
+                      </motion.div>
+                    )}
+                  </motion.div>
                 );
               })
             )}
