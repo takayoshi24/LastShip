@@ -194,14 +194,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .grid-cell.preview-valid { background: var(--cell-preview-valid); }
 .grid-cell.preview-invalid { background: var(--cell-preview-invalid); }
 
-.placed-ship-cell {
-  background: var(--cell-ship);
-  border: 1px solid var(--accent-dark);
-  border-radius: 2px;
-  width: 36px;
-  height: 36px;
-}
-
 .placement-actions {
   display: flex;
   gap: 12px;
