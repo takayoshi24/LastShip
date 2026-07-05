@@ -1,6 +1,41 @@
 # Changelog
 
 ---
+## 2026-07-05 — 2 commits on master
+
+**Scope:** Bug fix — mobile touch interactions broken after responsive layout (PR #39)
+
+### 546e529 — fix: use PointerSensor so Ready button works on iOS/Android
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `546e529cdf4c9a252d0f696d1e33dcfa03a8551c`
+
+`TouchSensor` calls `preventDefault()` on `touchstart` on draggable elements. On iOS Safari this blocks all subsequent `click` events in the same touch sequence — including on buttons that are outside `DndContext` entirely. Replaced `MouseSensor + TouchSensor` with a single `PointerSensor(distance: 5)`. Pointer events do not carry the same `preventDefault`-blocks-click behaviour as native touch events, so short taps fall through as normal clicks while a deliberate drag (≥5px pointer movement) still activates the drag gesture. Also added a `sending` state to the Ready button so it immediately renders "Sending..." on tap, giving the user visible confirmation that the touch registered before the server responds.
+
+**Files changed:**
+- `client/src/components/PlacementPhase.jsx` +8 / -5
+
+---
+
+### 0f92938 — fix: restore touch interactions on mobile after responsive layout change
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `0f929389094d6bc1341f8e446190ec71b9f4c40c`
+
+First-pass fix for mobile touch interactions broken by PR #38. Configured dnd-kit with `TouchSensor(delay: 200ms, tolerance: 8px)` so short taps could fire as clicks, and added `touch-action: manipulation` to `button` elements (removes the 300ms double-tap-zoom delay browsers impose when they cannot classify a gesture) and to `.grid-cell.clickable` (tells the browser to treat a finger touch on attack cells as a tap rather than a scroll attempt). Also added `whileTap` scale animation to attack-grid cells as tactile feedback on touch devices where `whileHover` has no effect.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +1 / -0
+- `client/src/components/PlacementPhase.jsx` +4 / -1
+- `client/src/index.css` +2 / -1
+
+---
+
+**Summary:** After the mobile responsive layout landed (PR #38), touch interactions stopped working on phone — players could neither tap attack cells nor tap the Ready button. The root cause was dnd-kit's `TouchSensor`, which calls `preventDefault()` on `touchstart` on draggable ship elements; on iOS Safari this suppresses `click` events throughout the same touch sequence, even for buttons completely outside the `DndContext`. The fix switches to `PointerSensor` with a 5px distance threshold, which avoids native touch event interception while still supporting drag-and-drop. Supporting changes add `touch-action: manipulation` to buttons and clickable cells, a `whileTap` animation for attack-grid feedback, and a "Sending..." button state so players immediately know their Ready tap was received.
+
+---
 ## 2026-07-05 — 1 commit on master (session 3)
 
 **Scope:** Bug fix — private room placement starts before opponent joins (PR #36)
