@@ -145,6 +145,7 @@ export default function GameBoard() {
                     animate={s}
                     onClick={() => handleFire(r, c)}
                     whileHover={clickable ? { scale: 1.1 } : {}}
+                    whileTap={clickable ? { scale: 0.85 } : {}}
                   />
                 );
               })

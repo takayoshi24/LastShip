@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { cellsFor } from '../utils/grid.js';
@@ -63,6 +63,10 @@ function GridCell({ row, col, hasShip, preview }) {
 
 export default function PlacementPhase() {
   const { state, sendMsg, dispatch } = useGame();
+  const sensors = useSensors(
+    useSensor(MouseSensor),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
   const [placements, setPlacements] = useState([]);
   const [orientation, setOrientation] = useState('H');
   const [dragOver, setDragOver] = useState(null);
@@ -150,6 +154,7 @@ export default function PlacementPhase() {
       </div>
 
       <DndContext
+        sensors={sensors}
         onDragStart={({ active }) => setActiveId(active.id)}
         onDragOver={({ over }) => setDragOver(over?.data?.current ?? null)}
         onDragEnd={handleDragEnd}
