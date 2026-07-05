@@ -112,7 +112,7 @@ export default function GameBoard() {
       <div className="boards-container">
         <div className="board-section">
           <h3>Your Fleet</h3>
-          <div className="grid" ref={gridRef}>
+          <div className="grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
                 const s = getCellState(myBoard, r, c);
@@ -131,7 +131,7 @@ export default function GameBoard() {
 
         <div className="board-section">
           <h3>Your Attack</h3>
-          <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`}>
+          <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
                 const s = getCellState(attackBoard, r, c);
