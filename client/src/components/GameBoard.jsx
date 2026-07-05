@@ -67,10 +67,12 @@ export default function GameBoard() {
       // Show explosion on canvas
       if (canvasRef.current && attackGridRef.current) {
         const gridRect = attackGridRef.current.getBoundingClientRect();
-        const cellSize = gridRect.width / GRID_SIZE;
+        const gap = 2; // matches CSS gap: 2px on .grid
+        const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
+        const stride = cellWidth + gap;
         const positions = sunkShip.cells.map(([cr, cc]) => ({
-          x: gridRect.left + cc * cellSize + cellSize / 2,
-          y: gridRect.top + cr * cellSize + cellSize / 2,
+          x: gridRect.left + cc * stride + cellWidth / 2,
+          y: gridRect.top + cr * stride + cellWidth / 2,
         }));
         triggerExplosion(canvasRef.current, positions);
       }
