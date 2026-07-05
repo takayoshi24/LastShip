@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on master
+
+**Scope:** Bug fix — Ready button stuck at "Sending..." after ships submitted (PR #40)
+
+### c0072aa — fix: handle PLACEMENT_ACCEPTED so player leaves placement screen
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `c0072aa019bc56c4281eacd3a56e13baa818a848`
+
+The reducer had no case for `PLACEMENT_ACCEPTED`, so when the server confirmed a valid ship placement the client simply ignored the message and stayed on `PlacementPhase` with the Ready button locked at "Sending..." indefinitely — effectively freezing the game until the 60-second placement timer expired and `GAME_START` eventually arrived (or never arriving in the 2-player case where the other player had not yet placed). Added three changes: a `'PLACEMENT_ACCEPTED'` case that transitions `screen` to the new `'placed'` state; a `'PLACEMENT_ERROR'` case that stores the rejection reason so `PlacementPhase` can unlock the button and display the error; and a "Waiting for opponent to be ready..." spinner panel in `GamePage` rendered for `screen === 'placed'`, giving the player clear feedback between submitting ships and `GAME_START` arriving.
+
+**Files changed:**
+- `client/src/components/PlacementPhase.jsx` +7 / -0
+- `client/src/context/GameContext.jsx` +9 / -1
+- `client/src/pages/GamePage.jsx` +6 / -0
+
+**Summary:** Clicking Ready on the placement screen sent the ships to the server correctly, but because `PLACEMENT_ACCEPTED` had no reducer handler the client never left the placement screen — the button stayed frozen at "Sending..." and the player saw no indication that their submission was received. The fix adds proper state transitions: the player now immediately sees a spinner and "Waiting for opponent..." after submitting, the button unlocks and shows an error message if the server rejects the placement, and the game starts normally when `GAME_START` arrives.
+
+---
 ## 2026-07-05 — 2 commits on master
 
 **Scope:** Bug fix — mobile touch interactions broken after responsive layout (PR #39)
