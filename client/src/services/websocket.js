@@ -4,6 +4,7 @@ let socket = null;
 const listeners = new Set();
 let reconnectAttempts = 0;
 const MAX_RECONNECT = 3;
+let pending = [];
 
 function connect() {
   socket = new WebSocket(WS_URL);
@@ -11,10 +12,15 @@ function connect() {
   socket.onopen = () => {
     reconnectAttempts = 0;
     for (const fn of listeners) fn({ type: '_CONNECTED' });
+
     const token = localStorage.getItem('lastship_player_token');
     const roomCode = localStorage.getItem('lastship_room_code');
     if (token && roomCode) {
-      send({ type: 'RECONNECT', roomCode, playerToken: token });
+      pending = [];
+      socket.send(JSON.stringify({ type: 'RECONNECT', roomCode, playerToken: token }));
+    } else {
+      const queued = pending.splice(0);
+      for (const msg of queued) socket.send(msg);
     }
   };
 
@@ -25,6 +31,7 @@ function connect() {
   };
 
   socket.onclose = () => {
+    pending = [];
     for (const fn of listeners) fn({ type: '_DISCONNECTED' });
     if (reconnectAttempts < MAX_RECONNECT) {
       reconnectAttempts++;
@@ -38,8 +45,11 @@ function connect() {
 }
 
 export function send(msg) {
+  const data = JSON.stringify(msg);
   if (socket?.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(msg));
+    socket.send(data);
+  } else {
+    pending.push(data);
   }
 }
 

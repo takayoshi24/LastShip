@@ -92,8 +92,8 @@ export function handleMessage(ws, rawData, wsToRoom) {
       const placements = msg.placements ?? [];
       if (placements.length === 0) {
         const autoPlaced = randomPlacement();
-        room.submitPlacement(context.slotIndex, autoPlaced);
         send(ws, { type: 'PLACEMENT_ACCEPTED' });
+        room.submitPlacement(context.slotIndex, autoPlaced);
         return;
       }
 
@@ -102,8 +102,8 @@ export function handleMessage(ws, rawData, wsToRoom) {
         return send(ws, { type: 'PLACEMENT_ERROR', reason: validation.reason });
       }
 
-      room.submitPlacement(context.slotIndex, placements);
       send(ws, { type: 'PLACEMENT_ACCEPTED' });
+      room.submitPlacement(context.slotIndex, placements);
       break;
     }
 

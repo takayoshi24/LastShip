@@ -1,6 +1,35 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on fix/hit-explosion-ws-placement
+
+**Scope:** Hit explosion animation, fire glow on hit cells, WebSocket message-drop fix, PLACEMENT_ACCEPTED race condition fix
+
+### feat: explosion and fire on hit; fix WS message drop and placement-accepted race
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+
+**Explosion on hit cells:** `GameBoard.jsx` canvas block refactored to cover both outcomes — when a shot is a `sunk`, the full multi-cell explosion burst fires across all the ship's cells as before; when the result is a plain `hit`, `triggerExplosion` now fires at that single cell's screen position. Previously only sunk ships triggered a particle burst; individual hits had no canvas feedback. The `prefers-reduced-motion` guard was also removed from `explosion.js` — explosions are functional game feedback (they confirm a hit), not decorative animation, so suppressing them based on an OS accessibility preference caused the feature to be silently absent on Windows PCs where "Show animations" is disabled in Ease of Access settings. The guard was the reason explosions worked on iPhone but not PC.
+
+**Fire glow on hit cells:** `.grid-cell.hit` now carries a looping `fire-glow` CSS keyframe animation. The `box-shadow` pulses between a deep red-orange inner halo (`#ff4500`) and an outer gold bloom (`#ffd700`) at 0.5 s intervals, giving burning cells a persistent flickering-fire appearance. Because framer-motion only controls `scale` and `backgroundColor` via inline styles, the `box-shadow` animation runs independently without conflict.
+
+**WebSocket message-drop fix:** `send()` previously called `socket.send()` only if `readyState === OPEN`, silently discarding messages when the socket was still connecting. If a player clicked Quick Match before the WebSocket finished opening, the `QUICK_MATCH` message was lost — the UI showed "Waiting for opponent" but the server never received the request and the player was never queued. A `pending` buffer now collects messages sent while the socket is connecting; on `onopen`, if no reconnect token is present the buffer is flushed in order. If a reconnect token exists, the buffer is discarded and `RECONNECT` takes priority. The buffer is also cleared on `onclose` so stale game actions are not replayed after a reconnect.
+
+**PLACEMENT_ACCEPTED race condition fix:** The second player to submit ships (via auto-place or manual Ready) received messages in the order `GAME_START` → `YOUR_PLACEMENTS` → `PLACEMENT_ACCEPTED`. The reducer handles `PLACEMENT_ACCEPTED` by setting `screen: 'placed'`, which overwrote the `screen: 'game'` set by `GAME_START` — leaving the second player stuck on the "Ships submitted! Waiting for opponent…" spinner while the first player was already in the game. Fixed by sending `PLACEMENT_ACCEPTED` to the submitting player *before* calling `room.submitPlacement()` in `messageRouter.js`. Since `submitPlacement` may call `_startGame()` which broadcasts `GAME_START`, swapping the order guarantees `PLACEMENT_ACCEPTED` always arrives first and the screen transitions go `placement → placed → game` in the correct sequence.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` — explosion on hit; canvas block refactored
+- `client/src/index.css` — `fire-glow` keyframe animation on `.grid-cell.hit`
+- `client/src/services/explosion.js` — removed `prefers-reduced-motion` guard
+- `client/src/services/websocket.js` — outgoing message buffer; flush on open
+- `server/src/handlers/messageRouter.js` — `PLACEMENT_ACCEPTED` sent before `submitPlacement`
+
+---
+
+**Summary:** This batch delivers two visual improvements and closes two bugs. Hit cells now produce a canvas particle burst on impact and pulse with a persistent fire-glow animation, making every successful shot visually distinct from a miss. Two silent failures were fixed: players who clicked Quick Match before the WebSocket finished connecting were never actually queued because the message was dropped (the UI showed "Waiting" but the server had no record of them), and the second player to auto-place ships was immediately kicked back to the waiting spinner because `PLACEMENT_ACCEPTED` arrived after `GAME_START` and overwrote the game screen state — only the first player made it into the game.
+
+---
 ## 2026-07-05 — 2 commits on master
 
 **Scope:** Quick Match broken + reconnect loses turn ownership; Return and Forfeit buttons added (PRs #42–#43)

@@ -1,7 +1,5 @@
-const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 export function triggerExplosion(canvas, positions) {
-  if (prefersReduced || !positions.length) return;
+  if (!positions.length) return;
 
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;

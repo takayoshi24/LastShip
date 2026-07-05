@@ -191,7 +191,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   transition: background 0.15s;
 }
 .grid-cell.ship { background: var(--cell-ship); border-color: var(--accent-dark); }
-.grid-cell.hit { background: var(--cell-hit); }
+.grid-cell.hit { background: var(--cell-hit); animation: fire-glow 0.5s ease-in-out infinite; }
+
+@keyframes fire-glow {
+  0%   { box-shadow: 0 0 4px 2px #ff4500, 0 0 10px 4px #ff8c00; }
+  50%  { box-shadow: 0 0 10px 5px #ff6347, 0 0 20px 8px #ffd700; }
+  100% { box-shadow: 0 0 4px 2px #ff4500, 0 0 10px 4px #ff8c00; }
+}
 .grid-cell.miss { background: var(--cell-miss); }
 .grid-cell.sunk { background: var(--cell-sunk); }
 .grid-cell.clickable { cursor: pointer; touch-action: manipulation; }

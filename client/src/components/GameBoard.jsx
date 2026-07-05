@@ -60,19 +60,26 @@ export default function GameBoard() {
 
     if (isMyShot) {
       setAttackAnimating(prev => ({ ...prev, [key]: cellResult }));
-      if (sunkShip) {
-        dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
-        if (canvasRef.current && attackGridRef.current) {
-          const gridRect = attackGridRef.current.getBoundingClientRect();
-          const gap = 2;
-          const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
-          const stride = cellWidth + gap;
+      if (canvasRef.current && attackGridRef.current) {
+        const gridRect = attackGridRef.current.getBoundingClientRect();
+        const gap = 2;
+        const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
+        const stride = cellWidth + gap;
+        if (sunkShip) {
           const positions = sunkShip.cells.map(([cr, cc]) => ({
             x: gridRect.left + cc * stride + cellWidth / 2,
             y: gridRect.top + cr * stride + cellWidth / 2,
           }));
           triggerExplosion(canvasRef.current, positions);
+        } else if (cellResult === 'hit') {
+          triggerExplosion(canvasRef.current, [{
+            x: gridRect.left + c * stride + cellWidth / 2,
+            y: gridRect.top + r * stride + cellWidth / 2,
+          }]);
         }
+      }
+      if (sunkShip) {
+        dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
         for (const [cr, cc] of sunkShip.cells) {
           setAttackAnimating(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
         }
