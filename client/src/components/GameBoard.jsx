@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GiHarryPotterSkull } from 'react-icons/gi';
 import { SiFireship, SiSonarqubeserver } from 'react-icons/si';
-import { LuEqualApproximately } from 'react-icons/lu';
+import { LuEqualApproximately, LuVolume2, LuVolumeX } from 'react-icons/lu';
 import { FaShip } from 'react-icons/fa';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
@@ -64,6 +64,13 @@ export default function GameBoard() {
   const [fleetAnimating, setFleetAnimating] = useState({});
   const [confirming, setConfirming] = useState(false);
   const confirmTimerRef = useRef(null);
+  const [volume, setVolume] = useState(() => parseFloat(localStorage.getItem('lastship_volume') ?? '0.7'));
+  const explosionAudioRef = useRef(new Audio('/audio/Explosion_Sound_Effect.mp3'));
+
+  useEffect(() => {
+    explosionAudioRef.current.volume = volume;
+    localStorage.setItem('lastship_volume', String(volume));
+  }, [volume]);
 
   const isMyTurn = state.currentTurn === state.playerSlot;
   const myIndex = state.playerSlot - 1;
@@ -84,6 +91,17 @@ export default function GameBoard() {
     const key = `${r},${c}`;
     const cellResult = result === 'sunk' ? 'sunk' : result;
     const isMyShot = shooterSlot === state.playerSlot;
+
+    if (cellResult === 'hit') {
+      const audio = new Audio('/audio/Explosion_Sound_Effect.mp3');
+      audio.volume = explosionAudioRef.current.volume;
+      audio.play().catch(() => {});
+    }
+    if (cellResult === 'miss') {
+      const audio = new Audio('/audio/Explosion_Water_Sound_Effect.mp3');
+      audio.volume = explosionAudioRef.current.volume;
+      audio.play().catch(() => {});
+    }
 
     if (isMyShot) {
       setAttackAnimating(prev => ({ ...prev, [key]: cellResult }));
@@ -154,6 +172,15 @@ export default function GameBoard() {
           {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
         </span>
         {isMyTurn && <CountdownTimer seconds={300} key={state.currentTurn} onExpire={() => {}} />}
+        <div className="volume-control">
+          {volume === 0 ? <LuVolumeX /> : <LuVolume2 />}
+          <input
+            type="range"
+            min="0" max="1" step="0.05"
+            value={volume}
+            onChange={e => setVolume(parseFloat(e.target.value))}
+          />
+        </div>
         <div className="forfeit-actions">
           {confirming && (
             <button
