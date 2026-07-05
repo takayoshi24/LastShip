@@ -33,7 +33,8 @@ export default function GameBoard() {
   const canvasRef = useRef(null);
   const gridRef = useRef(null);
   const attackGridRef = useRef(null);
-  const [animatingCells, setAnimatingCells] = useState({});
+  const [attackAnimating, setAttackAnimating] = useState({});
+  const [fleetAnimating, setFleetAnimating] = useState({});
 
   const isMyTurn = state.currentTurn === state.playerSlot;
   const myIndex = state.playerSlot - 1;
@@ -49,35 +50,39 @@ export default function GameBoard() {
 
   useEffect(() => {
     if (!state.lastShotResult) return;
-    const { coordinate, result, sunkShip } = state.lastShotResult;
+    const { coordinate, result, sunkShip, shooterSlot } = state.lastShotResult;
     const [r, c] = coordinate;
     const key = `${r},${c}`;
+    const cellResult = result === 'sunk' ? 'sunk' : result;
+    const isMyShot = shooterSlot === state.playerSlot;
 
-    setAnimatingCells(prev => ({ ...prev, [key]: result === 'sunk' ? 'sunk' : result }));
-
-    if (sunkShip) {
-      dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
-
-      // Show explosion on canvas
-      if (canvasRef.current && attackGridRef.current) {
-        const gridRect = attackGridRef.current.getBoundingClientRect();
-        const gap = 2; // matches CSS gap: 2px on .grid
-        const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
-        const stride = cellWidth + gap;
-        const positions = sunkShip.cells.map(([cr, cc]) => ({
-          x: gridRect.left + cc * stride + cellWidth / 2,
-          y: gridRect.top + cr * stride + cellWidth / 2,
-        }));
-        triggerExplosion(canvasRef.current, positions);
+    if (isMyShot) {
+      setAttackAnimating(prev => ({ ...prev, [key]: cellResult }));
+      if (sunkShip) {
+        dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
+        if (canvasRef.current && attackGridRef.current) {
+          const gridRect = attackGridRef.current.getBoundingClientRect();
+          const gap = 2;
+          const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
+          const stride = cellWidth + gap;
+          const positions = sunkShip.cells.map(([cr, cc]) => ({
+            x: gridRect.left + cc * stride + cellWidth / 2,
+            y: gridRect.top + cr * stride + cellWidth / 2,
+          }));
+          triggerExplosion(canvasRef.current, positions);
+        }
+        for (const [cr, cc] of sunkShip.cells) {
+          setAttackAnimating(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
+        }
       }
-
-      for (const [cr, cc] of sunkShip.cells) {
-        setAnimatingCells(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
+    } else {
+      setFleetAnimating(prev => ({ ...prev, [key]: cellResult }));
+      if (sunkShip) {
+        dispatch({ type: 'ADD_SUNK', targetIndex: myIndex, shipName: sunkShip.name });
+        for (const [cr, cc] of sunkShip.cells) {
+          setFleetAnimating(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
+        }
       }
-    }
-
-    if (result !== 'sunk') {
-      // Update attack board cell
     }
 
     dispatch({ type: 'UPDATE_TURN', turn: state.currentTurn === 1 ? 2 : 1 });
@@ -85,13 +90,12 @@ export default function GameBoard() {
 
   function handleFire(r, c) {
     if (!isMyTurn) return;
-    const cell = attackBoard[r]?.[c];
-    if (cell && (cell.state === 'hit' || cell.state === 'miss' || cell.state === 'sunk')) return;
+    if (attackAnimating[`${r},${c}`]) return;
     sendMsg({ type: 'FIRE', coordinate: [r, c] });
   }
 
-  function getCellState(board, r, c, animKey) {
-    if (animatingCells[`${r},${c}`]) return animatingCells[`${r},${c}`];
+  function getCellState(board, r, c, animating) {
+    if (animating[`${r},${c}`]) return animating[`${r},${c}`];
     return board?.[r]?.[c]?.state ?? 'empty';
   }
 
@@ -112,7 +116,7 @@ export default function GameBoard() {
           <div className="grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
-                const s = getCellState(myBoard, r, c);
+                const s = getCellState(myBoard, r, c, fleetAnimating);
                 return (
                   <motion.div
                     key={`my-${r}-${c}`}
@@ -131,7 +135,7 @@ export default function GameBoard() {
           <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} ref={attackGridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
-                const s = getCellState(attackBoard, r, c);
+                const s = getCellState(attackBoard, r, c, attackAnimating);
                 const clickable = isMyTurn && s === 'empty';
                 return (
                   <motion.div
