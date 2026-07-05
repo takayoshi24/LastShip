@@ -5,13 +5,7 @@ import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
 import SunkShipsList from './SunkShipsList.jsx';
 import { triggerExplosion } from '../services/explosion.js';
-
-function cellsFor(origin, orientation, size) {
-  const [r, c] = origin;
-  return Array.from({ length: size }, (_, i) =>
-    orientation === 'H' ? [r, c + i] : [r + i, c]
-  );
-}
+import { cellsFor } from '../utils/grid.js';
 
 function buildBoardFromPlacements(placements) {
   const board = Array.from({ length: GRID_SIZE }, () =>
