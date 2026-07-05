@@ -1,6 +1,26 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on feat/miss-sonar-animation
+
+**Scope:** Sonar ping animation on miss cells using SiSonarqubeserver
+
+### feat: dual sonar ping animation on miss cells
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+
+Miss cells now render two overlapping `SiSonarqubeserver` icons (react-icons/si) that pulse together in a sonar-ping loop. Both icons sit at the same center point via `position: absolute; inset: 0` inside a `.sonar-wrap` container. The animation (`sonarAnim`) expands each icon from `scale: 0` to `scale: 1.2` while fading `opacity: 1 → 0`, then silently resets at `scale: 0` while invisible — ensuring the loop restart is seamless with no visible jump. The second icon has `initial={{ rotate: 90 }}` so it is permanently oriented 90° from the first, giving the combined pair a crosshair-like appearance. Both fire simultaneously on the same 2.2 s `easeOut` cycle.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` — `SiSonarqubeserver` import; `sonarAnim` constant; dual sonar render in fleet and attack miss cells
+- `client/src/index.css` — `.sonar-wrap` positioned container; `.sonar-icon` absolute inset styles; `.grid-cell.miss` overflow visible
+
+---
+
+**Summary:** Miss cells now show a distinctive dual sonar-ping animation — two `SiSonarqubeserver` icons at 0° and 90° pulsing outward in sync from cell centre and fading as they expand, like a real sonar sweep. The seamless loop is achieved by resetting the scale to zero while opacity is already zero, so the snap-back is invisible.
+
+---
 ## 2026-07-05 — 1 commit on feat/sea-icons-skull-fire-home-fix
 
 **Scope:** Board icons (sea/skull/fire), fire animation polish, connecting screen home button

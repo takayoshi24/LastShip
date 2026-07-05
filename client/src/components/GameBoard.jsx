@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GiHarryPotterSkull } from 'react-icons/gi';
-import { SiFireship } from 'react-icons/si';
+import { SiFireship, SiSonarqubeserver } from 'react-icons/si';
 import { LuEqualApproximately } from 'react-icons/lu';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
@@ -22,6 +22,19 @@ function buildBoardFromPlacements(placements) {
   }
   return board;
 }
+
+const sonarAnim = {
+  animate: {
+    scale:   [0, 1.2, 0],
+    opacity: [1, 0,   0],
+  },
+  transition: {
+    duration: 2.2,
+    repeat: Infinity,
+    ease: 'easeOut',
+    times: [0, 0.6, 1],
+  },
+};
 
 const fireShipAnim = {
   style: { transformOrigin: '50% 100%' },
@@ -176,6 +189,21 @@ export default function GameBoard() {
                         <SiFireship />
                       </motion.div>
                     )}
+                    {s === 'miss' && (
+                      <div className="sonar-wrap">
+                        <motion.div className="sonar-icon" {...sonarAnim}>
+                          <SiSonarqubeserver />
+                        </motion.div>
+                        <motion.div
+                          className="sonar-icon"
+                          initial={{ rotate: 90, scale: 0, opacity: 1 }}
+                          animate={sonarAnim.animate}
+                          transition={sonarAnim.transition}
+                        >
+                          <SiSonarqubeserver />
+                        </motion.div>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })
@@ -206,6 +234,21 @@ export default function GameBoard() {
                       <motion.div className="fire-ship-icon" {...fireShipAnim}>
                         <SiFireship />
                       </motion.div>
+                    )}
+                    {s === 'miss' && (
+                      <div className="sonar-wrap">
+                        <motion.div className="sonar-icon" {...sonarAnim}>
+                          <SiSonarqubeserver />
+                        </motion.div>
+                        <motion.div
+                          className="sonar-icon"
+                          initial={{ rotate: 90, scale: 0, opacity: 1 }}
+                          animate={sonarAnim.animate}
+                          transition={sonarAnim.transition}
+                        >
+                          <SiSonarqubeserver />
+                        </motion.div>
+                      </div>
                     )}
                   </motion.div>
                 );
