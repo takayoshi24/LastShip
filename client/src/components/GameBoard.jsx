@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GiHarryPotterSkull } from 'react-icons/gi';
 import { SiFireship, SiSonarqubeserver } from 'react-icons/si';
 import { LuEqualApproximately } from 'react-icons/lu';
+import { FaShip } from 'react-icons/fa';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
@@ -172,6 +173,7 @@ export default function GameBoard() {
         <div className="board-section">
           <h3>Your Fleet</h3>
           <div className="grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
+
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
                 const s = getCellState(myBoard, r, c, fleetAnimating);
@@ -183,6 +185,7 @@ export default function GameBoard() {
                     animate={s}
                   >
                     {s === 'empty' && <LuEqualApproximately className="sea-icon" />}
+                    {s === 'ship'  && <FaShip className="ship-cell-icon" />}
                     {s === 'sunk' && <GiHarryPotterSkull className="skull-icon" />}
                     {s === 'hit' && (
                       <motion.div className="fire-ship-icon" {...fireShipAnim}>
@@ -209,6 +212,7 @@ export default function GameBoard() {
               })
             )}
           </div>
+
         </div>
 
         <div className="board-section">

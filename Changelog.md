@@ -1,6 +1,27 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on feat/ship-icons-and-fleet-legend
+
+**Scope:** Ship cell icons + fleet info in sunk ships panel
+
+### feat: FaShip icon on ship cells; cell-count legend in sunk ships panel
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+
+Ship cells on the fleet board now render a `FaShip` icon (react-icons/fa) in light blue so occupied cells are visually distinct from empty sea. The sunk ships panel (`SunkShipsList`) now shows each ship's real name (removed the `?????` mask for enemy ships) alongside a row of small coloured squares representing its cell count — in both "Your ships" and "Enemy ships" columns.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` — import `FaShip`; render ship icon for `s === 'ship'`
+- `client/src/components/SunkShipsList.jsx` — both columns use flex ship-tag with name + cell squares; enemy column shows real name
+- `client/src/index.css` — `.ship-tag` flex layout; `.ship-tag-name/cells/cell` styles; `.ship-cell-icon` style
+
+---
+
+**Summary:** Ship cells now show a `FaShip` icon for instant fleet readability, and the sunk-ships panel lists every ship by real name with a mini cell-count bar so both players can track remaining fleet sizes at a glance.
+
+---
 ## 2026-07-05 — 1 commit on feat/miss-sonar-animation
 
 **Scope:** Sonar ping animation on miss cells using SiSonarqubeserver
