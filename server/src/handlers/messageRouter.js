@@ -87,8 +87,9 @@ export function handleMessage(ws, rawData, wsToRoom) {
 
       const placements = msg.placements ?? [];
       if (placements.length === 0) {
-        // Trigger ready with no placements — handled by timeout rule
-        room.submitPlacement(context.slotIndex, []);
+        const autoPlaced = randomPlacement();
+        room.submitPlacement(context.slotIndex, autoPlaced);
+        send(ws, { type: 'PLACEMENT_ACCEPTED' });
         return;
       }
 
