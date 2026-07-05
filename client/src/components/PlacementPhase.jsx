@@ -14,6 +14,17 @@ function isValid(origin, orientation, size, occupied) {
   });
 }
 
+function withoutShip(occupied, placements, shipName) {
+  const temp = new Set(occupied);
+  const existing = placements.find(p => p.shipName === shipName);
+  if (existing) {
+    const cfg = FLEET_CONFIG.find(s => s.name === shipName);
+    for (const [r, c] of cellsFor(existing.origin, existing.orientation, cfg.size))
+      temp.delete(`${r},${c}`);
+  }
+  return temp;
+}
+
 function ShipDraggable({ ship, orientation }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: ship.name,
@@ -85,14 +96,7 @@ export default function PlacementPhase() {
     const ship = FLEET_CONFIG.find(s => s.name === activeId);
     if (!ship) return null;
     const { row, col } = dragOver;
-    const tempOccupied = new Set(occupied);
-    const existing = placements.find(p => p.shipName === ship.name);
-    if (existing) {
-      const cfg = FLEET_CONFIG.find(s => s.name === existing.shipName);
-      for (const [r, c] of cellsFor(existing.origin, existing.orientation, cfg.size)) {
-        tempOccupied.delete(`${r},${c}`);
-      }
-    }
+    const tempOccupied = withoutShip(occupied, placements, ship.name);
     const valid = isValid([row, col], orientation, ship.size, tempOccupied);
     return { cells: new Set(cellsFor([row, col], orientation, ship.size).map(([r, c]) => `${r},${c}`)), valid };
   }
@@ -107,14 +111,7 @@ export default function PlacementPhase() {
     const ship = FLEET_CONFIG.find(s => s.name === active.id);
     if (!ship) return;
 
-    const tempOccupied = new Set(occupied);
-    const existing = placements.find(p => p.shipName === ship.name);
-    if (existing) {
-      const cfg = FLEET_CONFIG.find(s => s.name === existing.shipName);
-      for (const [r, c] of cellsFor(existing.origin, existing.orientation, cfg.size)) {
-        tempOccupied.delete(`${r},${c}`);
-      }
-    }
+    const tempOccupied = withoutShip(occupied, placements, ship.name);
 
     if (!isValid([row, col], orientation, ship.size, tempOccupied)) return;
 
