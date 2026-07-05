@@ -46,12 +46,11 @@ function ShipDraggable({ ship, orientation }) {
   );
 }
 
-function GridCell({ row, col, board, preview }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `cell-${row}-${col}`, data: { row, col } });
-  const cell = board?.[row]?.[col];
+function GridCell({ row, col, hasShip, preview }) {
+  const { setNodeRef } = useDroppable({ id: `cell-${row}-${col}`, data: { row, col } });
 
   let cls = 'grid-cell';
-  if (cell?.state === 'ship') cls += ' ship';
+  if (hasShip && !preview) cls += ' ship';
   if (preview) cls += preview.valid ? ' preview-valid' : ' preview-invalid';
 
   return <div ref={setNodeRef} className={cls} />;
@@ -181,34 +180,18 @@ export default function PlacementPhase() {
                 Array.from({ length: GRID_SIZE }, (_, c) => {
                   const key = `${r},${c}`;
                   const inPreview = preview?.cells.has(key);
+                  const hasShip = occupied.has(key);
                   return (
                     <GridCell
                       key={key}
                       row={r}
                       col={c}
-                      board={null}
+                      hasShip={hasShip}
                       preview={inPreview ? { valid: preview.valid } : null}
                     />
                   );
                 })
               )}
-            </div>
-            {/* Render placed ships as overlay */}
-            <div className="ships-overlay" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
-              {placements.map(p => {
-                const cfg = FLEET_CONFIG.find(s => s.name === p.shipName);
-                const cells = cellsFor(p.origin, p.orientation, cfg.size);
-                return cells.map(([r, c]) => (
-                  <div
-                    key={`${p.shipName}-${r}-${c}`}
-                    className="placed-ship-cell"
-                    style={{
-                      gridRow: r + 1,
-                      gridColumn: c + 1,
-                    }}
-                  />
-                ));
-              })}
             </div>
           </div>
         </div>
