@@ -193,7 +193,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border-radius: 2px;
   transition: background 0.15s;
 }
-.grid-cell.ship { background: var(--cell-ship); }
+.grid-cell.ship { background: var(--cell-ship); border-color: var(--accent-dark); }
 .grid-cell.hit { background: var(--cell-hit); }
 .grid-cell.miss { background: var(--cell-miss); }
 .grid-cell.sunk { background: var(--cell-sunk); }
