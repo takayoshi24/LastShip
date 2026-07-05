@@ -3,6 +3,25 @@
 ---
 ## 2026-07-05 — 1 commit on master
 
+**Scope:** Bug fix — tapping attack cells does nothing on iPhone (PR #41)
+
+### 704fb5b — fix: fire shots on iOS Safari by using onTap and cursor:pointer
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `704fb5b696419d2a5789a62307282d6123a46aaf`
+
+iOS Safari only fires `click` events on `div` elements that have `cursor: pointer` in their computed style — a long-standing WebKit quirk that affects all non-interactive HTML elements. The attack-grid cells had `cursor: crosshair`, so every tap was silently dropped by iOS and no shot was ever sent. Two changes: `cursor: crosshair` changed to `cursor: pointer` on `.grid-cell.clickable` so iOS recognises the element as interactive; and `onClick` replaced with framer-motion's `onTap`, which is built on `PointerEvent` internally and fires regardless of cursor CSS, making the fix robust against any future cursor change.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +1 / -1
+- `client/src/index.css` +1 / -1
+
+**Summary:** On iPhone, tapping cells on the attack board had no effect — no shot was fired and no animation played. The cause was an obscure iOS Safari restriction: `click` events are suppressed on `div` elements unless `cursor: pointer` is set. The attack cells used `cursor: crosshair`, which iOS ignores for click hit-testing. Switching to `cursor: pointer` and replacing `onClick` with framer-motion's pointer-event-based `onTap` resolves the issue on all iOS versions.
+
+---
+## 2026-07-05 — 1 commit on master
+
 **Scope:** Bug fix — Ready button stuck at "Sending..." after ships submitted (PR #40)
 
 ### c0072aa — fix: handle PLACEMENT_ACCEPTED so player leaves placement screen
