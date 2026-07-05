@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
@@ -80,13 +80,15 @@ export default function PlacementPhase() {
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  const occupied = new Set();
-  for (const p of placements) {
-    const cfg = FLEET_CONFIG.find(s => s.name === p.shipName);
-    for (const [r, c] of cellsFor(p.origin, p.orientation, cfg.size)) {
-      occupied.add(`${r},${c}`);
+  const occupied = useMemo(() => {
+    const set = new Set();
+    for (const p of placements) {
+      const cfg = FLEET_CONFIG.find(s => s.name === p.shipName);
+      for (const [r, c] of cellsFor(p.origin, p.orientation, cfg.size))
+        set.add(`${r},${c}`);
     }
-  }
+    return set;
+  }, [placements]);
 
   const placedNames = new Set(placements.map(p => p.shipName));
   const unplaced = FLEET_CONFIG.filter(s => !placedNames.has(s.name));
