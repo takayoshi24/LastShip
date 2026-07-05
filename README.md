@@ -6,7 +6,7 @@ Browser-based Battleship — play online against a friend in a private room, joi
 
 | Layer | Technology |
 |-------|-----------|
-| Client | React 19, Vite, Framer Motion, @dnd-kit |
+| Client | React 19, Vite, Framer Motion, react-icons, @dnd-kit |
 | Server | Node.js, `ws` (WebSocket) |
 | Transport | WebSocket (no REST) |
 
@@ -15,6 +15,8 @@ Browser-based Battleship — play online against a friend in a private room, joi
 ```
 LastShip/
 ├── client/          # React + Vite frontend
+│   ├── public/
+│   │   └── audio/        # Sound effects (.mp3)
 │   └── src/
 │       ├── components/   # PlacementPhase, GameBoard, UI components
 │       ├── context/      # GameContext (WebSocket state machine)
@@ -125,6 +127,31 @@ http://192.168.0.20:5173
 - 60-second ship placement phase — unplaced ships are auto-placed randomly if time runs out
 - 5-minute turn timer — missing the timer forfeits the game
 - First to sink all opponent ships wins
+
+## Visuals
+
+Each cell state has a distinct icon and animation:
+
+| Cell state | Visual |
+|-----------|--------|
+| Empty | `≈` sea wave icon, low opacity |
+| Ship (your fleet) | Ship icon in light blue |
+| Hit | Animated fire icon with orange glow; particle explosion on impact |
+| Sunk | Skull icon on dark red background |
+| Miss | Dual sonar-ping animation — two rings pulsing outward from centre |
+
+## Audio
+
+| Event | Sound |
+|-------|-------|
+| Hit | Explosion sound effect |
+| Miss | Water splash sound effect |
+
+Sounds overlay each other so rapid shots don't cut off previous plays. A volume slider in the turn bar lets you adjust or mute audio at any time — the setting persists across sessions.
+
+## Fleet panel
+
+Below both boards a panel lists every ship by name with a mini cell-count bar showing its size. Ships strike through when sunk. Enemy ship names are always visible so both players can track remaining fleet sizes.
 
 ## Reconnecting
 
