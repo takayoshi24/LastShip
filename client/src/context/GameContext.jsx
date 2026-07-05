@@ -64,6 +64,7 @@ function reducer(state, action) {
         myPlacements: gs.myPlacements,
         sunkShips: gs.sunkShips,
         currentTurn: gs.currentTurn,
+        playerSlot: gs.playerSlot ?? state.playerSlot,
         reconnecting: false,
         reconnectFailed: false,
       };

@@ -197,6 +197,7 @@ export class Room {
         myPlacements: this.placements[slotIndex],
         sunkShips: this.sunkShips,
         roomState: this.state,
+        playerSlot: slotIndex + 1,
       },
     });
   }

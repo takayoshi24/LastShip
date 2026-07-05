@@ -57,6 +57,10 @@ export function handleMessage(ws, rawData, wsToRoom) {
         const room = result.room;
         const slotIndex = room.players.findIndex(p => p && p.ws === ws);
         wsToRoom.set(ws, { roomCode: room.code, slotIndex });
+        // Also register the waiting player who was dequeued inside enqueueQuickMatch
+        const waitingSlotIndex = 1 - slotIndex;
+        const waitingWs = room.players[waitingSlotIndex]?.ws;
+        if (waitingWs) wsToRoom.set(waitingWs, { roomCode: room.code, slotIndex: waitingSlotIndex });
       }
       break;
     }
