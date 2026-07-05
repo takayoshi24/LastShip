@@ -26,12 +26,10 @@ export default function GamePage() {
   if (state.screen === 'lobby') {
     return (
       <div className="game-page">
+        <RoomInfo roomCode={roomCode} />
         <p>Connecting to room {roomCode}...</p>
         {state.reconnectFailed && (
-          <div>
-            <p className="error-banner">Could not join room.</p>
-            <button onClick={() => navigate('/')} className="btn-secondary">Back to Lobby</button>
-          </div>
+          <p className="error-banner">Could not join room.</p>
         )}
       </div>
     );
