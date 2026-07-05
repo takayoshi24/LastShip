@@ -18,6 +18,8 @@
   --cell-preview-valid: #a5d6a7;
   --cell-preview-invalid: #ef9a9a;
 
+  --cell: 36px;
+
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -163,7 +165,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   gap: 4px;
 }
 .ship-name { font-size: 0.8rem; color: var(--text-dim); }
-.ship-cell { width: 34px; height: 34px; }
+.ship-cell { width: var(--cell); height: var(--cell); }
 .ship-preview-cell { background: var(--cell-ship); border: 1px solid var(--accent-dark); border-radius: 2px; }
 .all-placed { color: var(--success); font-size: 0.9rem; }
 .dragging { opacity: 0.5; }
@@ -178,8 +180,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .grid-cell {
-  width: 36px;
-  height: 36px;
+  width: var(--cell);
+  height: var(--cell);
   background: var(--cell-empty);
   border: 1px solid var(--border);
   border-radius: 2px;
@@ -344,4 +346,69 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-bottom: 12px;
   font-size: 0.9rem;
   text-align: center;
+}
+
+/* ─── Responsive ─────────────────────────────────────── */
+
+/* Tablet / small desktop: stack boards vertically, rearrange ship panel */
+@media (max-width: 700px) {
+  .boards-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .placement-body {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ship-panel {
+    width: 100%;
+    max-width: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .ship-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sunk-ships {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+/* Mobile: shrink cells, reduce padding */
+@media (max-width: 520px) {
+  :root { --cell: 30px; }
+
+  .game-page { padding: 8px; }
+
+  .lobby { padding: 32px 12px; }
+  .lobby h1 { font-size: 2.2rem; }
+
+  .placement-header { flex-wrap: wrap; gap: 8px; }
+  .placement-actions { flex-wrap: wrap; }
+
+  .turn-bar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .turn-indicator { font-size: 1rem; }
+
+  .room-info { font-size: 0.8rem; gap: 8px; }
+
+  .gameover-card { padding: 24px 16px; }
+  .victory-text, .defeat-text { font-size: 2rem; }
+
+  .reconnect-card { padding: 24px 20px; }
+}
+
+/* Small phones: shrink cells further */
+@media (max-width: 380px) {
+  :root { --cell: 26px; }
 }

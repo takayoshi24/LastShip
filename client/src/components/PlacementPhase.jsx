@@ -39,8 +39,8 @@ function ShipDraggable({ ship, orientation }) {
       className={`ship-piece orientation-${orientation} ${isDragging ? 'dragging' : ''}`}
       style={{
         display: 'grid',
-        gridTemplateColumns: orientation === 'H' ? `repeat(${ship.size}, 36px)` : '36px',
-        gridTemplateRows: orientation === 'V' ? `repeat(${ship.size}, 36px)` : '36px',
+        gridTemplateColumns: orientation === 'H' ? `repeat(${ship.size}, var(--cell))` : 'var(--cell)',
+        gridTemplateRows: orientation === 'V' ? `repeat(${ship.size}, var(--cell))` : 'var(--cell)',
         cursor: 'grab',
       }}
     >
@@ -168,7 +168,7 @@ export default function PlacementPhase() {
           </div>
 
           <div className="grid-wrapper">
-            <div className="grid" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 36px)` }}>
+            <div className="grid" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
               {Array.from({ length: GRID_SIZE }, (_, r) =>
                 Array.from({ length: GRID_SIZE }, (_, c) => {
                   const key = `${r},${c}`;
