@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { DndContext, useDraggable, useDroppable, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { cellsFor } from '../utils/grid.js';
@@ -64,14 +64,14 @@ function GridCell({ row, col, hasShip, preview }) {
 export default function PlacementPhase() {
   const { state, sendMsg, dispatch } = useGame();
   const sensors = useSensors(
-    useSensor(MouseSensor),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
   const [placements, setPlacements] = useState([]);
   const [orientation, setOrientation] = useState('H');
   const [dragOver, setDragOver] = useState(null);
   const [secsLeft, setSecsLeft] = useState(PLACEMENT_SECS);
   const [activeId, setActiveId] = useState(null);
+  const [sending, setSending] = useState(false);
   const intervalRef = useRef(null);
 
   useEffect(() => {
@@ -128,6 +128,7 @@ export default function PlacementPhase() {
   }
 
   function handleReady() {
+    setSending(true);
     dispatch({ type: 'UPDATE_PLACEMENTS', placements });
     sendMsg({ type: 'PLACE_SHIPS', placements });
   }
@@ -197,9 +198,11 @@ export default function PlacementPhase() {
 
       <div className="placement-actions">
         {placedNames.size === FLEET_CONFIG.length && (
-          <button onClick={handleReady} className="btn-primary">Ready!</button>
+          <button onClick={handleReady} className="btn-primary" disabled={sending}>
+            {sending ? 'Sending...' : 'Ready!'}
+          </button>
         )}
-        <button onClick={handleSkip} className="btn-ghost">Auto-place</button>
+        <button onClick={handleSkip} className="btn-ghost" disabled={sending}>Auto-place</button>
       </div>
 
       <p className="placement-hint">
