@@ -1,0 +1,53 @@
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3001';
+
+let socket = null;
+const listeners = new Set();
+let reconnectAttempts = 0;
+const MAX_RECONNECT = 3;
+
+function connect() {
+  socket = new WebSocket(WS_URL);
+
+  socket.onopen = () => {
+    reconnectAttempts = 0;
+    for (const fn of listeners) fn({ type: '_CONNECTED' });
+    const token = localStorage.getItem('lastship_player_token');
+    const roomCode = localStorage.getItem('lastship_room_code');
+    if (token && roomCode) {
+      send({ type: 'RECONNECT', roomCode, playerToken: token });
+    }
+  };
+
+  socket.onmessage = (event) => {
+    let msg;
+    try { msg = JSON.parse(event.data); } catch { return; }
+    for (const fn of listeners) fn(msg);
+  };
+
+  socket.onclose = () => {
+    for (const fn of listeners) fn({ type: '_DISCONNECTED' });
+    if (reconnectAttempts < MAX_RECONNECT) {
+      reconnectAttempts++;
+      setTimeout(connect, 1000);
+    } else {
+      for (const fn of listeners) fn({ type: '_RECONNECT_EXHAUSTED' });
+    }
+  };
+
+  socket.onerror = () => {};
+}
+
+export function send(msg) {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(msg));
+  }
+}
+
+export function subscribe(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function init() {
+  if (!socket) connect();
+}
