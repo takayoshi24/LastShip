@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
@@ -35,6 +35,8 @@ export default function GameBoard() {
   const attackGridRef = useRef(null);
   const [attackAnimating, setAttackAnimating] = useState({});
   const [fleetAnimating, setFleetAnimating] = useState({});
+  const [confirming, setConfirming] = useState(false);
+  const confirmTimerRef = useRef(null);
 
   const isMyTurn = state.currentTurn === state.playerSlot;
   const myIndex = state.playerSlot - 1;
@@ -58,19 +60,26 @@ export default function GameBoard() {
 
     if (isMyShot) {
       setAttackAnimating(prev => ({ ...prev, [key]: cellResult }));
-      if (sunkShip) {
-        dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
-        if (canvasRef.current && attackGridRef.current) {
-          const gridRect = attackGridRef.current.getBoundingClientRect();
-          const gap = 2;
-          const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
-          const stride = cellWidth + gap;
+      if (canvasRef.current && attackGridRef.current) {
+        const gridRect = attackGridRef.current.getBoundingClientRect();
+        const gap = 2;
+        const cellWidth = (gridRect.width - gap * (GRID_SIZE - 1)) / GRID_SIZE;
+        const stride = cellWidth + gap;
+        if (sunkShip) {
           const positions = sunkShip.cells.map(([cr, cc]) => ({
             x: gridRect.left + cc * stride + cellWidth / 2,
             y: gridRect.top + cr * stride + cellWidth / 2,
           }));
           triggerExplosion(canvasRef.current, positions);
+        } else if (cellResult === 'hit') {
+          triggerExplosion(canvasRef.current, [{
+            x: gridRect.left + c * stride + cellWidth / 2,
+            y: gridRect.top + r * stride + cellWidth / 2,
+          }]);
         }
+      }
+      if (sunkShip) {
+        dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
         for (const [cr, cc] of sunkShip.cells) {
           setAttackAnimating(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
         }
@@ -87,6 +96,16 @@ export default function GameBoard() {
 
     dispatch({ type: 'UPDATE_TURN', turn: state.currentTurn === 1 ? 2 : 1 });
   }, [state.lastShotResult]);
+
+  const handleForfeitClick = useCallback(() => {
+    if (!confirming) {
+      setConfirming(true);
+      confirmTimerRef.current = setTimeout(() => setConfirming(false), 4000);
+    } else {
+      clearTimeout(confirmTimerRef.current);
+      sendMsg({ type: 'FORFEIT' });
+    }
+  }, [confirming, sendMsg]);
 
   function handleFire(r, c) {
     if (!isMyTurn) return;
@@ -108,6 +127,19 @@ export default function GameBoard() {
           {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
         </span>
         {isMyTurn && <CountdownTimer seconds={300} key={state.currentTurn} onExpire={() => {}} />}
+        <div className="forfeit-actions">
+          {confirming && (
+            <button
+              className="btn-ghost"
+              onClick={() => { clearTimeout(confirmTimerRef.current); setConfirming(false); }}
+            >
+              Cancel
+            </button>
+          )}
+          <button className={confirming ? 'btn-danger' : 'btn-ghost'} onClick={handleForfeitClick}>
+            {confirming ? 'Confirm?' : 'Forfeit'}
+          </button>
+        </div>
       </div>
 
       <div className="boards-container">
@@ -143,8 +175,9 @@ export default function GameBoard() {
                     className={`grid-cell ${s} ${clickable ? 'clickable' : ''}`}
                     variants={cellVariants}
                     animate={s}
-                    onClick={() => handleFire(r, c)}
+                    onTap={clickable ? () => handleFire(r, c) : undefined}
                     whileHover={clickable ? { scale: 1.1 } : {}}
+                    whileTap={clickable ? { scale: 0.85 } : {}}
                   />
                 );
               })

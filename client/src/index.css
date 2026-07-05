@@ -37,6 +37,7 @@ button {
   padding: 10px 20px;
   font-size: 1rem;
   transition: opacity 0.15s, transform 0.1s;
+  touch-action: manipulation;
 }
 button:active { transform: scale(0.97); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -47,6 +48,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary:hover { background: var(--border); }
 .btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
 .btn-ghost:hover { background: var(--accent-dark); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; border: none; }
+.btn-danger:hover { background: #c62828; }
 
 /* ─── Lobby ─────────────────────────────────────────── */
 .lobby {
@@ -188,10 +191,16 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   transition: background 0.15s;
 }
 .grid-cell.ship { background: var(--cell-ship); border-color: var(--accent-dark); }
-.grid-cell.hit { background: var(--cell-hit); }
+.grid-cell.hit { background: var(--cell-hit); animation: fire-glow 0.5s ease-in-out infinite; }
+
+@keyframes fire-glow {
+  0%   { box-shadow: 0 0 4px 2px #ff4500, 0 0 10px 4px #ff8c00; }
+  50%  { box-shadow: 0 0 10px 5px #ff6347, 0 0 20px 8px #ffd700; }
+  100% { box-shadow: 0 0 4px 2px #ff4500, 0 0 10px 4px #ff8c00; }
+}
 .grid-cell.miss { background: var(--cell-miss); }
 .grid-cell.sunk { background: var(--cell-sunk); }
-.grid-cell.clickable { cursor: crosshair; }
+.grid-cell.clickable { cursor: pointer; touch-action: manipulation; }
 .grid-cell.clickable:hover { background: var(--accent-dark); }
 .grid-cell.preview-valid { background: var(--cell-preview-valid); }
 .grid-cell.preview-invalid { background: var(--cell-preview-invalid); }
@@ -227,6 +236,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .turn-indicator { font-size: 1.1rem; font-weight: 600; flex: 1; }
+.forfeit-actions { display: flex; gap: 8px; margin-left: auto; }
+.forfeit-actions button { padding: 6px 12px; font-size: 0.85rem; }
 .turn-indicator.my-turn { color: var(--success); }
 .turn-indicator.opp-turn { color: var(--text-dim); }
 

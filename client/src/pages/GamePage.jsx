@@ -51,6 +51,12 @@ export default function GamePage() {
         </div>
       )}
       {state.screen === 'placement' && <PlacementPhase />}
+      {state.screen === 'placed' && (
+        <div className="panel">
+          <div className="spinner" />
+          <p>Ships submitted! Waiting for opponent to be ready...</p>
+        </div>
+      )}
       {state.screen === 'game' && <GameBoard />}
       {state.screen === 'gameover' && <GameOver />}
       {state.reconnecting && <ReconnectOverlay />}

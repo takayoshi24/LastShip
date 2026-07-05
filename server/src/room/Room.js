@@ -197,8 +197,14 @@ export class Room {
         myPlacements: this.placements[slotIndex],
         sunkShips: this.sunkShips,
         roomState: this.state,
+        playerSlot: slotIndex + 1,
       },
     });
+  }
+
+  forfeit(slotIndex) {
+    if (this.state !== 'active') return;
+    this._endGame(slotIndex === 0 ? 1 : 0);
   }
 
   getPlayerByToken(token) {

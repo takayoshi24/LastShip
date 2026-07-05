@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { DndContext, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { cellsFor } from '../utils/grid.js';
@@ -63,11 +63,15 @@ function GridCell({ row, col, hasShip, preview }) {
 
 export default function PlacementPhase() {
   const { state, sendMsg, dispatch } = useGame();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
   const [placements, setPlacements] = useState([]);
   const [orientation, setOrientation] = useState('H');
   const [dragOver, setDragOver] = useState(null);
   const [secsLeft, setSecsLeft] = useState(PLACEMENT_SECS);
   const [activeId, setActiveId] = useState(null);
+  const [sending, setSending] = useState(false);
   const intervalRef = useRef(null);
 
   useEffect(() => {
@@ -123,7 +127,12 @@ export default function PlacementPhase() {
     ]);
   }
 
+  useEffect(() => {
+    if (state.placementError) setSending(false);
+  }, [state.placementError]);
+
   function handleReady() {
+    setSending(true);
     dispatch({ type: 'UPDATE_PLACEMENTS', placements });
     sendMsg({ type: 'PLACE_SHIPS', placements });
   }
@@ -150,6 +159,7 @@ export default function PlacementPhase() {
       </div>
 
       <DndContext
+        sensors={sensors}
         onDragStart={({ active }) => setActiveId(active.id)}
         onDragOver={({ over }) => setDragOver(over?.data?.current ?? null)}
         onDragEnd={handleDragEnd}
@@ -190,11 +200,16 @@ export default function PlacementPhase() {
         </div>
       </DndContext>
 
+      {state.placementError && (
+        <p className="error-banner">{state.placementError}</p>
+      )}
       <div className="placement-actions">
         {placedNames.size === FLEET_CONFIG.length && (
-          <button onClick={handleReady} className="btn-primary">Ready!</button>
+          <button onClick={handleReady} className="btn-primary" disabled={sending}>
+            {sending ? 'Sending...' : 'Ready!'}
+          </button>
         )}
-        <button onClick={handleSkip} className="btn-ghost">Auto-place</button>
+        <button onClick={handleSkip} className="btn-ghost" disabled={sending}>Auto-place</button>
       </div>
 
       <p className="placement-hint">

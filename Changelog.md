@@ -1,6 +1,148 @@
 # Changelog
 
 ---
+## 2026-07-05 — 1 commit on fix/hit-explosion-ws-placement
+
+**Scope:** Hit explosion animation, fire glow on hit cells, WebSocket message-drop fix, PLACEMENT_ACCEPTED race condition fix
+
+### feat: explosion and fire on hit; fix WS message drop and placement-accepted race
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+
+**Explosion on hit cells:** `GameBoard.jsx` canvas block refactored to cover both outcomes — when a shot is a `sunk`, the full multi-cell explosion burst fires across all the ship's cells as before; when the result is a plain `hit`, `triggerExplosion` now fires at that single cell's screen position. Previously only sunk ships triggered a particle burst; individual hits had no canvas feedback. The `prefers-reduced-motion` guard was also removed from `explosion.js` — explosions are functional game feedback (they confirm a hit), not decorative animation, so suppressing them based on an OS accessibility preference caused the feature to be silently absent on Windows PCs where "Show animations" is disabled in Ease of Access settings. The guard was the reason explosions worked on iPhone but not PC.
+
+**Fire glow on hit cells:** `.grid-cell.hit` now carries a looping `fire-glow` CSS keyframe animation. The `box-shadow` pulses between a deep red-orange inner halo (`#ff4500`) and an outer gold bloom (`#ffd700`) at 0.5 s intervals, giving burning cells a persistent flickering-fire appearance. Because framer-motion only controls `scale` and `backgroundColor` via inline styles, the `box-shadow` animation runs independently without conflict.
+
+**WebSocket message-drop fix:** `send()` previously called `socket.send()` only if `readyState === OPEN`, silently discarding messages when the socket was still connecting. If a player clicked Quick Match before the WebSocket finished opening, the `QUICK_MATCH` message was lost — the UI showed "Waiting for opponent" but the server never received the request and the player was never queued. A `pending` buffer now collects messages sent while the socket is connecting; on `onopen`, if no reconnect token is present the buffer is flushed in order. If a reconnect token exists, the buffer is discarded and `RECONNECT` takes priority. The buffer is also cleared on `onclose` so stale game actions are not replayed after a reconnect.
+
+**PLACEMENT_ACCEPTED race condition fix:** The second player to submit ships (via auto-place or manual Ready) received messages in the order `GAME_START` → `YOUR_PLACEMENTS` → `PLACEMENT_ACCEPTED`. The reducer handles `PLACEMENT_ACCEPTED` by setting `screen: 'placed'`, which overwrote the `screen: 'game'` set by `GAME_START` — leaving the second player stuck on the "Ships submitted! Waiting for opponent…" spinner while the first player was already in the game. Fixed by sending `PLACEMENT_ACCEPTED` to the submitting player *before* calling `room.submitPlacement()` in `messageRouter.js`. Since `submitPlacement` may call `_startGame()` which broadcasts `GAME_START`, swapping the order guarantees `PLACEMENT_ACCEPTED` always arrives first and the screen transitions go `placement → placed → game` in the correct sequence.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` — explosion on hit; canvas block refactored
+- `client/src/index.css` — `fire-glow` keyframe animation on `.grid-cell.hit`
+- `client/src/services/explosion.js` — removed `prefers-reduced-motion` guard
+- `client/src/services/websocket.js` — outgoing message buffer; flush on open
+- `server/src/handlers/messageRouter.js` — `PLACEMENT_ACCEPTED` sent before `submitPlacement`
+
+---
+
+**Summary:** This batch delivers two visual improvements and closes two bugs. Hit cells now produce a canvas particle burst on impact and pulse with a persistent fire-glow animation, making every successful shot visually distinct from a miss. Two silent failures were fixed: players who clicked Quick Match before the WebSocket finished connecting were never actually queued because the message was dropped (the UI showed "Waiting" but the server had no record of them), and the second player to auto-place ships was immediately kicked back to the waiting spinner because `PLACEMENT_ACCEPTED` arrived after `GAME_START` and overwrote the game screen state — only the first player made it into the game.
+
+---
+## 2026-07-05 — 2 commits on master
+
+**Scope:** Quick Match broken + reconnect loses turn ownership; Return and Forfeit buttons added (PRs #42–#43)
+
+### 4ad2260 — feat: add Return (Home) button and Forfeit button
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `4ad2260fdc494d2d9abc4516f95cb512390f9d8c`
+
+Two new controls. **Return (← Home)** in the RoomInfo bar: always visible on every game screen; if the player is in an active game it sends `FORFEIT` first so the opponent gets an immediate win rather than waiting 30 seconds for the disconnect timeout, then resets client state and navigates to the lobby. **Forfeit** in the GameBoard turn-bar: two-step confirmation to prevent accidental taps on mobile — first tap turns the button red and shows "Confirm?" alongside a "Cancel" button; a second tap sends `FORFEIT`; the confirmation auto-cancels after 4 seconds with no action. After forfeiting the opponent wins immediately and both players see the gameover screen so they can play again or return to the lobby. Server adds `Room.forfeit(slotIndex)` which calls `_endGame` with the opponent as winner only if the room is in `active` state, making late or duplicate forfeits no-ops.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +27 / -1
+- `client/src/components/RoomInfo.jsx` +11 / -0
+- `client/src/index.css` +4 / -0
+- `server/src/handlers/messageRouter.js` +8 / -0
+- `server/src/room/Room.js` +5 / -0
+
+---
+
+### 83e0cbb — fix: quick match first player can't fire; reconnect loses playerSlot
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `83e0cbb4d33cfe3df7b30ec4e06e892ce04b4fdd`
+
+Two bugs fixed. **Quick Match**: `enqueueQuickMatch` dequeues the waiting player and sends `ROOM_READY` to both, but `messageRouter` only updated `wsToRoom` for the second (newly arriving) player. The first player kept `roomCode: null`, so every `FIRE` and `PLACE_SHIPS` they sent hit the `NOT_IN_ROOM` guard and was silently dropped — the game was permanently stuck on their turn with neither player able to proceed. Fixed by also registering the waiting player's `wsToRoom` entry when the match is made. **Reconnect**: `RECONNECT_SUCCESS` did not include `playerSlot` in its payload. After a page refresh the React state resets to `null`, so after reconnecting the client's `playerSlot` stayed `null`, `isMyTurn` was always `false`, and the player saw "Opponent's turn" for the rest of the game. Fixed by including `playerSlot: slotIndex + 1` in the server's reconnect response and applying it in the client reducer.
+
+**Files changed:**
+- `client/src/context/GameContext.jsx` +1 / -0
+- `server/src/handlers/messageRouter.js` +4 / -0
+- `server/src/room/Room.js` +1 / -0
+
+---
+
+**Summary:** This batch resolves three blocking issues: Quick Match was completely broken for the first queued player because their server-side room mapping was never updated after a match was made, silently discarding all their in-game actions; reconnecting after a page refresh lost the player's slot identity, causing the turn indicator to permanently show the wrong player's turn; and players had no way to voluntarily end a game or leave a screen. The fixes restore Quick Match parity, harden reconnect state restoration, and add Return and Forfeit controls with mobile-safe confirmation UX.
+
+---
+## 2026-07-05 — 1 commit on master
+
+**Scope:** Bug fix — tapping attack cells does nothing on iPhone (PR #41)
+
+### 704fb5b — fix: fire shots on iOS Safari by using onTap and cursor:pointer
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `704fb5b696419d2a5789a62307282d6123a46aaf`
+
+iOS Safari only fires `click` events on `div` elements that have `cursor: pointer` in their computed style — a long-standing WebKit quirk that affects all non-interactive HTML elements. The attack-grid cells had `cursor: crosshair`, so every tap was silently dropped by iOS and no shot was ever sent. Two changes: `cursor: crosshair` changed to `cursor: pointer` on `.grid-cell.clickable` so iOS recognises the element as interactive; and `onClick` replaced with framer-motion's `onTap`, which is built on `PointerEvent` internally and fires regardless of cursor CSS, making the fix robust against any future cursor change.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +1 / -1
+- `client/src/index.css` +1 / -1
+
+**Summary:** On iPhone, tapping cells on the attack board had no effect — no shot was fired and no animation played. The cause was an obscure iOS Safari restriction: `click` events are suppressed on `div` elements unless `cursor: pointer` is set. The attack cells used `cursor: crosshair`, which iOS ignores for click hit-testing. Switching to `cursor: pointer` and replacing `onClick` with framer-motion's pointer-event-based `onTap` resolves the issue on all iOS versions.
+
+---
+## 2026-07-05 — 1 commit on master
+
+**Scope:** Bug fix — Ready button stuck at "Sending..." after ships submitted (PR #40)
+
+### c0072aa — fix: handle PLACEMENT_ACCEPTED so player leaves placement screen
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `c0072aa019bc56c4281eacd3a56e13baa818a848`
+
+The reducer had no case for `PLACEMENT_ACCEPTED`, so when the server confirmed a valid ship placement the client simply ignored the message and stayed on `PlacementPhase` with the Ready button locked at "Sending..." indefinitely — effectively freezing the game until the 60-second placement timer expired and `GAME_START` eventually arrived (or never arriving in the 2-player case where the other player had not yet placed). Added three changes: a `'PLACEMENT_ACCEPTED'` case that transitions `screen` to the new `'placed'` state; a `'PLACEMENT_ERROR'` case that stores the rejection reason so `PlacementPhase` can unlock the button and display the error; and a "Waiting for opponent to be ready..." spinner panel in `GamePage` rendered for `screen === 'placed'`, giving the player clear feedback between submitting ships and `GAME_START` arriving.
+
+**Files changed:**
+- `client/src/components/PlacementPhase.jsx` +7 / -0
+- `client/src/context/GameContext.jsx` +9 / -1
+- `client/src/pages/GamePage.jsx` +6 / -0
+
+**Summary:** Clicking Ready on the placement screen sent the ships to the server correctly, but because `PLACEMENT_ACCEPTED` had no reducer handler the client never left the placement screen — the button stayed frozen at "Sending..." and the player saw no indication that their submission was received. The fix adds proper state transitions: the player now immediately sees a spinner and "Waiting for opponent..." after submitting, the button unlocks and shows an error message if the server rejects the placement, and the game starts normally when `GAME_START` arrives.
+
+---
+## 2026-07-05 — 2 commits on master
+
+**Scope:** Bug fix — mobile touch interactions broken after responsive layout (PR #39)
+
+### 546e529 — fix: use PointerSensor so Ready button works on iOS/Android
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `546e529cdf4c9a252d0f696d1e33dcfa03a8551c`
+
+`TouchSensor` calls `preventDefault()` on `touchstart` on draggable elements. On iOS Safari this blocks all subsequent `click` events in the same touch sequence — including on buttons that are outside `DndContext` entirely. Replaced `MouseSensor + TouchSensor` with a single `PointerSensor(distance: 5)`. Pointer events do not carry the same `preventDefault`-blocks-click behaviour as native touch events, so short taps fall through as normal clicks while a deliberate drag (≥5px pointer movement) still activates the drag gesture. Also added a `sending` state to the Ready button so it immediately renders "Sending..." on tap, giving the user visible confirmation that the touch registered before the server responds.
+
+**Files changed:**
+- `client/src/components/PlacementPhase.jsx` +8 / -5
+
+---
+
+### 0f92938 — fix: restore touch interactions on mobile after responsive layout change
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-05
+- **Hash:** `0f929389094d6bc1341f8e446190ec71b9f4c40c`
+
+First-pass fix for mobile touch interactions broken by PR #38. Configured dnd-kit with `TouchSensor(delay: 200ms, tolerance: 8px)` so short taps could fire as clicks, and added `touch-action: manipulation` to `button` elements (removes the 300ms double-tap-zoom delay browsers impose when they cannot classify a gesture) and to `.grid-cell.clickable` (tells the browser to treat a finger touch on attack cells as a tap rather than a scroll attempt). Also added `whileTap` scale animation to attack-grid cells as tactile feedback on touch devices where `whileHover` has no effect.
+
+**Files changed:**
+- `client/src/components/GameBoard.jsx` +1 / -0
+- `client/src/components/PlacementPhase.jsx` +4 / -1
+- `client/src/index.css` +2 / -1
+
+---
+
+**Summary:** After the mobile responsive layout landed (PR #38), touch interactions stopped working on phone — players could neither tap attack cells nor tap the Ready button. The root cause was dnd-kit's `TouchSensor`, which calls `preventDefault()` on `touchstart` on draggable ship elements; on iOS Safari this suppresses `click` events throughout the same touch sequence, even for buttons completely outside the `DndContext`. The fix switches to `PointerSensor` with a 5px distance threshold, which avoids native touch event interception while still supporting drag-and-drop. Supporting changes add `touch-action: manipulation` to buttons and clickable cells, a `whileTap` animation for attack-grid feedback, and a "Sending..." button state so players immediately know their Ready tap was received.
+
+---
 ## 2026-07-05 — 1 commit on master (session 3)
 
 **Scope:** Bug fix — private room placement starts before opponent joins (PR #36)

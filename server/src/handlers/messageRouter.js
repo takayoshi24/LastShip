@@ -57,6 +57,10 @@ export function handleMessage(ws, rawData, wsToRoom) {
         const room = result.room;
         const slotIndex = room.players.findIndex(p => p && p.ws === ws);
         wsToRoom.set(ws, { roomCode: room.code, slotIndex });
+        // Also register the waiting player who was dequeued inside enqueueQuickMatch
+        const waitingSlotIndex = 1 - slotIndex;
+        const waitingWs = room.players[waitingSlotIndex]?.ws;
+        if (waitingWs) wsToRoom.set(waitingWs, { roomCode: room.code, slotIndex: waitingSlotIndex });
       }
       break;
     }
@@ -88,8 +92,8 @@ export function handleMessage(ws, rawData, wsToRoom) {
       const placements = msg.placements ?? [];
       if (placements.length === 0) {
         const autoPlaced = randomPlacement();
-        room.submitPlacement(context.slotIndex, autoPlaced);
         send(ws, { type: 'PLACEMENT_ACCEPTED' });
+        room.submitPlacement(context.slotIndex, autoPlaced);
         return;
       }
 
@@ -98,8 +102,8 @@ export function handleMessage(ws, rawData, wsToRoom) {
         return send(ws, { type: 'PLACEMENT_ERROR', reason: validation.reason });
       }
 
-      room.submitPlacement(context.slotIndex, placements);
       send(ws, { type: 'PLACEMENT_ACCEPTED' });
+      room.submitPlacement(context.slotIndex, placements);
       break;
     }
 
@@ -114,6 +118,14 @@ export function handleMessage(ws, rawData, wsToRoom) {
       if (result.error) {
         send(ws, { type: 'FIRE_ERROR', code: result.error });
       }
+      break;
+    }
+
+    case 'FORFEIT': {
+      const context = wsToRoom.get(ws);
+      if (!context?.roomCode) return;
+      const room = getRoom(context.roomCode);
+      if (room) room.forfeit(context.slotIndex);
       break;
     }
 
