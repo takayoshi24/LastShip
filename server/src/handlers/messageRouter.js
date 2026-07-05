@@ -121,6 +121,14 @@ export function handleMessage(ws, rawData, wsToRoom) {
       break;
     }
 
+    case 'FORFEIT': {
+      const context = wsToRoom.get(ws);
+      if (!context?.roomCode) return;
+      const room = getRoom(context.roomCode);
+      if (room) room.forfeit(context.slotIndex);
+      break;
+    }
+
     case 'RECONNECT': {
       const room = getRoom(msg.roomCode);
       if (!room) return send(ws, { type: 'RECONNECT_FAILED' });

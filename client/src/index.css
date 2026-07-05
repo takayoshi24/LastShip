@@ -48,6 +48,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-secondary:hover { background: var(--border); }
 .btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
 .btn-ghost:hover { background: var(--accent-dark); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; border: none; }
+.btn-danger:hover { background: #c62828; }
 
 /* ─── Lobby ─────────────────────────────────────────── */
 .lobby {
@@ -228,6 +230,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .turn-indicator { font-size: 1.1rem; font-weight: 600; flex: 1; }
+.forfeit-actions { display: flex; gap: 8px; margin-left: auto; }
+.forfeit-actions button { padding: 6px 12px; font-size: 0.85rem; }
 .turn-indicator.my-turn { color: var(--success); }
 .turn-indicator.opp-turn { color: var(--text-dim); }
 

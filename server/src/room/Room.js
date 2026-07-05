@@ -202,6 +202,11 @@ export class Room {
     });
   }
 
+  forfeit(slotIndex) {
+    if (this.state !== 'active') return;
+    this._endGame(slotIndex === 0 ? 1 : 0);
+  }
+
   getPlayerByToken(token) {
     return this.players.findIndex(p => p && p.token === token);
   }

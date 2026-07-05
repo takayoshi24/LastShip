@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
@@ -35,6 +35,8 @@ export default function GameBoard() {
   const attackGridRef = useRef(null);
   const [attackAnimating, setAttackAnimating] = useState({});
   const [fleetAnimating, setFleetAnimating] = useState({});
+  const [confirming, setConfirming] = useState(false);
+  const confirmTimerRef = useRef(null);
 
   const isMyTurn = state.currentTurn === state.playerSlot;
   const myIndex = state.playerSlot - 1;
@@ -88,6 +90,16 @@ export default function GameBoard() {
     dispatch({ type: 'UPDATE_TURN', turn: state.currentTurn === 1 ? 2 : 1 });
   }, [state.lastShotResult]);
 
+  const handleForfeitClick = useCallback(() => {
+    if (!confirming) {
+      setConfirming(true);
+      confirmTimerRef.current = setTimeout(() => setConfirming(false), 4000);
+    } else {
+      clearTimeout(confirmTimerRef.current);
+      sendMsg({ type: 'FORFEIT' });
+    }
+  }, [confirming, sendMsg]);
+
   function handleFire(r, c) {
     if (!isMyTurn) return;
     if (attackAnimating[`${r},${c}`]) return;
@@ -108,6 +120,19 @@ export default function GameBoard() {
           {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
         </span>
         {isMyTurn && <CountdownTimer seconds={300} key={state.currentTurn} onExpire={() => {}} />}
+        <div className="forfeit-actions">
+          {confirming && (
+            <button
+              className="btn-ghost"
+              onClick={() => { clearTimeout(confirmTimerRef.current); setConfirming(false); }}
+            >
+              Cancel
+            </button>
+          )}
+          <button className={confirming ? 'btn-danger' : 'btn-ghost'} onClick={handleForfeitClick}>
+            {confirming ? 'Confirm?' : 'Forfeit'}
+          </button>
+        </div>
       </div>
 
       <div className="boards-container">
