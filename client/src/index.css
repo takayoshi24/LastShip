@@ -220,7 +220,24 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   50%  { box-shadow: 0 0 10px 5px #ff6347, 0 0 20px 8px #ffd700; }
   100% { box-shadow: 0 0 4px 2px #ff4500, 0 0 10px 4px #ff8c00; }
 }
-.grid-cell.miss { background: var(--cell-miss); }
+.grid-cell.miss { background: var(--cell-miss); overflow: visible; }
+.sonar-wrap {
+  position: relative;
+  width: calc(var(--cell) * 0.65);
+  height: calc(var(--cell) * 0.65);
+  flex-shrink: 0;
+}
+.sonar-icon {
+  position: absolute;
+  inset: 0;
+  font-size: calc(var(--cell) * 0.65);
+  color: #81d4fa;
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .grid-cell.sunk {
   background: var(--cell-sunk);
   position: relative;
