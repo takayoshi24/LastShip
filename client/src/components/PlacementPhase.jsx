@@ -50,7 +50,7 @@ function GridCell({ row, col, hasShip, preview }) {
   const { setNodeRef } = useDroppable({ id: `cell-${row}-${col}`, data: { row, col } });
 
   let cls = 'grid-cell';
-  if (hasShip && !preview) cls += ' ship';
+  if (hasShip) cls += ' ship';
   if (preview) cls += preview.valid ? ' preview-valid' : ' preview-invalid';
 
   return <div ref={setNodeRef} className={cls} />;
