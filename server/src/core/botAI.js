@@ -68,7 +68,7 @@ function huntCandidates(board, hits) {
   return [...candidates].map(k => k.split(',').map(Number));
 }
 
-function probabilityDensity(board, remainingSizes) {
+function probabilityDensity(board, remainingSizes, parityStep = 1) {
   const density = Array.from({ length: GRID_SIZE }, () => new Array(GRID_SIZE).fill(0));
 
   for (const size of remainingSizes) {
@@ -95,6 +95,8 @@ function probabilityDensity(board, remainingSizes) {
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
       if (!isShot(board, r, c) && density[r][c] > bestScore) {
+        // parity filter: only consider cells on the checkerboard stride
+        if ((r + c) % parityStep !== 0) continue;
         bestScore = density[r][c];
         best = [r, c];
       }
@@ -107,10 +109,23 @@ function randomChoice(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// easy  — pure random, no targeting
-// medium — hunt/target after hits, random search
-// hard   — hunt/target after hits, probability-density search
+// easy       — pure random, no targeting
+// medium     — hunt/target after hits, random search
+// hard       — hunt/target after hits, probability-density search
+// superhard  — hard + checkerboard parity filter (fires only at cells spaced by
+//              the smallest remaining ship size, dramatically shrinking search space)
+// impossible — cheats: reads ship positions directly, never misses
 export function getNextShot(board, sunkShipNames, difficulty = 'medium') {
+  if (difficulty === 'impossible') {
+    const shipCells = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (board[r][c].state === 'ship') shipCells.push([r, c]);
+      }
+    }
+    return randomChoice(shipCells);
+  }
+
   const untried = getUntried(board);
 
   if (difficulty === 'easy') {
@@ -124,10 +139,20 @@ export function getNextShot(board, sunkShipNames, difficulty = 'medium') {
     if (candidates.length > 0) return randomChoice(candidates);
   }
 
-  if (difficulty === 'hard') {
+  if (difficulty === 'hard' || difficulty === 'superhard') {
     const remainingSizes = FLEET_CONFIG
       .filter(s => !sunkShipNames.includes(s.name))
       .map(s => s.size);
+
+    if (difficulty === 'superhard') {
+      const minSize = Math.min(...remainingSizes);
+      // parity step = min ship size: guarantees every remaining ship is reachable
+      // while skipping cells that provably can't be isolated ship cells
+      const best = probabilityDensity(board, remainingSizes, minSize);
+      if (best) return best;
+      // fall back to unfiltered density if parity grid is exhausted
+    }
+
     const densityTarget = probabilityDensity(board, remainingSizes);
     if (densityTarget) return densityTarget;
   }

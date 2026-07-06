@@ -65,6 +65,8 @@ export default function LobbyPage() {
               <button onClick={() => handlePlayBot('easy')} className="btn-difficulty easy">Easy</button>
               <button onClick={() => handlePlayBot('medium')} className="btn-difficulty medium">Medium</button>
               <button onClick={() => handlePlayBot('hard')} className="btn-difficulty hard">Hard</button>
+              <button onClick={() => handlePlayBot('superhard')} className="btn-difficulty superhard">Super Hard</button>
+              <button onClick={() => handlePlayBot('impossible')} className="btn-difficulty impossible">Impossible</button>
             </div>
           </div>
 

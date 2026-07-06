@@ -90,20 +90,29 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   background: var(--surface);
 }
 .bot-label { font-size: 0.85rem; color: var(--text-dim); text-align: center; }
-.bot-difficulty { display: flex; gap: 8px; }
+.bot-difficulty {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.bot-difficulty .btn-difficulty:nth-child(4) { grid-column: 1 / 2; }
+.bot-difficulty .btn-difficulty:nth-child(5) { grid-column: 2 / 4; }
 .btn-difficulty {
-  flex: 1;
   padding: 10px 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   border-radius: 6px;
   font-weight: 600;
 }
-.btn-difficulty.easy   { background: #2e7d32; color: #fff; }
-.btn-difficulty.easy:hover   { background: #43a047; }
-.btn-difficulty.medium { background: #e65100; color: #fff; }
+.btn-difficulty.easy       { background: #2e7d32; color: #fff; }
+.btn-difficulty.easy:hover { background: #43a047; }
+.btn-difficulty.medium       { background: #e65100; color: #fff; }
 .btn-difficulty.medium:hover { background: #fb8c00; }
-.btn-difficulty.hard   { background: #b71c1c; color: #fff; }
-.btn-difficulty.hard:hover   { background: #e53935; }
+.btn-difficulty.hard       { background: #b71c1c; color: #fff; }
+.btn-difficulty.hard:hover { background: #e53935; }
+.btn-difficulty.superhard       { background: #6a1b9a; color: #fff; }
+.btn-difficulty.superhard:hover { background: #8e24aa; }
+.btn-difficulty.impossible       { background: #212121; color: #ff1744; border: 1px solid #ff1744; }
+.btn-difficulty.impossible:hover { background: #ff1744; color: #fff; }
 
 .join-form { display: flex; gap: 8px; }
 .join-form input {
