@@ -1,158 +1,187 @@
 # LastShip
 
-Browser-based Battleship — play online against a friend in a private room, join a quick match with a stranger, or go solo against the bot. No account required.
+Browser-based Battleship — play against a friend in a private room, join a quick match with a stranger, or fight the bot at five difficulty levels. No account required.
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Client | React 19, Vite, Framer Motion, react-icons, @dnd-kit |
-| Server | Node.js, `ws` (WebSocket) |
-| Transport | WebSocket (no REST) |
+| Client | React 19, Vite, Framer Motion, @dnd-kit |
+| Server | Node.js 20, `ws` (WebSocket) |
+| Transport | WebSocket only (no REST) |
 
 ## Project structure
 
 ```
 LastShip/
-├── client/          # React + Vite frontend
-│   ├── public/
-│   │   └── audio/        # Sound effects (.mp3)
+├── client/              React + Vite frontend
+│   ├── public/audio/    Sound effects (.mp3)
 │   └── src/
-│       ├── components/   # PlacementPhase, GameBoard, UI components
-│       ├── context/      # GameContext (WebSocket state machine)
-│       ├── pages/        # LobbyPage, GamePage
-│       ├── services/     # websocket.js, explosion.js
-│       └── utils/        # grid.js (shared cell math)
-└── server/          # Node.js WebSocket server
-    └── src/
-        ├── config/       # fleet.js (ship definitions)
-        ├── core/         # gameLogic.js, botAI.js
-        ├── handlers/     # messageRouter.js
-        └── room/         # Room.js, registry.js
+│       ├── components/  PlacementPhase, GameBoard, UI components
+│       ├── context/     GameContext (WebSocket state machine)
+│       ├── pages/       LobbyPage, GamePage
+│       ├── services/    websocket.js, explosion.js
+│       └── utils/       grid.js (cell math)
+├── server/              Node.js server
+│   └── src/
+│       ├── config/      fleet.js (ship definitions)
+│       ├── core/        gameLogic.js, botAI.js
+│       ├── handlers/    messageRouter.js
+│       └── room/        Room.js, registry.js
+├── Dockerfile
+└── package.json         Root scripts for build and start
 ```
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) 20+
 
 ## Local development
 
-### Prerequisites
-
-- Node.js 18+
-
-### Install dependencies
+Install all dependencies from the repo root:
 
 ```bash
-cd server && npm install
-cd ../client && npm install
+npm run install:all
 ```
 
-### Start the server
+Start the server (restarts on file changes):
 
 ```bash
-cd server
-npm run dev
+npm run dev:server
 ```
 
-Runs on `ws://localhost:3001`. Uses `--watch` so it restarts on file changes.
-
-### Start the client
+In a second terminal, start the client dev server:
 
 ```bash
-cd client
-npm run dev
+npm run dev:client
 ```
 
-Runs on `http://localhost:5173`.
+Open `http://localhost:5173`. The client connects to the WebSocket server at `ws://localhost:3000` by default.
 
-## Playing over a local network (WiFi)
+To play on another device on the same network, set `VITE_WS_URL` when starting the client:
 
-To play on another device on the same WiFi network (phone, another PC, etc.):
-
-### 1 — Find your local IP
-
-```powershell
-ipconfig
+```bash
+VITE_WS_URL=ws://192.168.0.20:3000 npm run dev:client -- --host
 ```
 
-Look for the **IPv4 Address** on your WiFi adapter (e.g. `192.168.0.20`). Use the WiFi IP even if your PC is also on ethernet — the other device must be on the same subnet.
+Then open `http://192.168.0.20:5173` on the other device.
 
-### 2 — Open firewall ports
+## Production
 
-Windows blocks inbound connections by default. Run these once in an **Administrator** PowerShell:
+Build the client and serve everything from a single Node.js process on one port:
 
-```powershell
-netsh advfirewall firewall add rule name="LastShip WS Server" dir=in action=allow protocol=TCP localport=3001 profile=any
-netsh advfirewall firewall add rule name="LastShip Vite Dev" dir=in action=allow protocol=TCP localport=5173 profile=any
+```bash
+npm run build   # compiles client into client/dist/
+npm start       # serves HTTP + WebSocket on port 3000
 ```
 
-| Port | Service |
-|------|---------|
-| `3001` | WebSocket game server |
-| `5173` | Vite dev server (game UI) |
+The server serves the React app as static files and handles WebSocket upgrades on the same port — no reverse proxy is needed for basic deployments.
 
-To remove the rules later:
-```powershell
-netsh advfirewall firewall delete rule name="LastShip WS Server"
-netsh advfirewall firewall delete rule name="LastShip Vite Dev"
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | Port the server listens on |
+| `VITE_WS_URL` | derived from `window.location` | Override WebSocket URL at build time (only needed for split deployments) |
+
+### Docker
+
+```bash
+docker build -t lastship .
+docker run -p 3000:3000 lastship
 ```
 
-### 3 — Start the client with your local IP
+The multi-stage Dockerfile builds the client then packages only the server and compiled assets into a lean Alpine image.
 
-```powershell
-cd client
-$env:VITE_WS_URL="ws://192.168.0.20:3001"; npm run dev -- --host
+### VPS / server (AlmaLinux / Ubuntu example)
+
+```bash
+git clone https://github.com/takayoshi24/LastShip.git
+cd LastShip
+npm run install:all
+npm run build
+
+# keep the process alive
+npm install -g pm2
+pm2 start server/src/server.js --name lastship
+pm2 save && pm2 startup
 ```
 
-Replace `192.168.0.20` with your actual WiFi IP.
+Open port 3000 in the firewall (AlmaLinux):
 
-### 4 — Connect from the other device
-
-Open in the browser on the other device (screen must be on):
-
-```
-http://192.168.0.20:5173
+```bash
+firewall-cmd --permanent --add-port=3000/tcp && firewall-cmd --reload
 ```
 
-> **Important:** type the full `http://` prefix. Mobile browsers will force HTTPS if you omit it, which breaks the connection.
+To put Nginx in front with HTTPS, proxy all traffic — including WebSocket upgrades — to `localhost:3000`:
+
+```nginx
+location / {
+    proxy_pass http://localhost:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+}
+```
 
 ## Game modes
 
 | Mode | How to start |
 |------|-------------|
-| Quick Match | Joins a public queue — auto-paired with the next player |
-| Private Room | Generates a room code and shareable URL — send the link to a friend |
-| Play vs Bot | Instant game against the server-side AI |
+| Quick Match | Joins a public queue — auto-paired with the next available player |
+| Private Room | Generates a 6-character room code and shareable URL |
+| Play vs Bot | Instant solo game — choose one of five difficulty levels |
+
+### Bot difficulty levels
+
+| Level | Strategy |
+|-------|---------|
+| Easy | Fires randomly — no targeting |
+| Medium | Targets adjacent cells after a hit, locks to the ship axis when direction is known |
+| Hard | Same as Medium + probability density to pick the statistically best search cell |
+| Super Hard | Same as Hard + checkerboard parity filter — fires only at cells spaced by the smallest remaining ship size, halving the search space |
+| Impossible | Cheats — reads ship positions directly on the server, never misses. Player always goes first to compensate. |
 
 ## Rules
 
-- 10×10 grid, fleet of 5 ships (Carrier 5, Battleship 4, Cruiser 3, Submarine 3, Destroyer 2)
-- 60-second ship placement phase — unplaced ships are auto-placed randomly if time runs out
+- 10×10 grid, fleet of 5 ships: Carrier (5), Battleship (4), Cruiser (3), Submarine (3), Destroyer (2)
+- 60-second placement phase — unplaced ships are auto-placed randomly when time runs out
 - 5-minute turn timer — missing the timer forfeits the game
 - First to sink all opponent ships wins
+- Reconnect window: 30 seconds — opponent wins by default if you don't reconnect in time
 
-## Visuals
+## Features
 
-Each cell state has a distinct icon and animation:
+**Visuals**
 
 | Cell state | Visual |
 |-----------|--------|
-| Empty | `≈` sea wave icon, low opacity |
-| Ship (your fleet) | Ship icon in light blue |
-| Hit | Animated fire icon with orange glow; particle explosion on impact |
+| Empty | Wave icon, low opacity |
+| Your ship | Ship icon in light blue |
+| Hit | Animated fire icon with orange glow + particle explosion |
 | Sunk | Skull icon on dark red background |
-| Miss | Dual sonar-ping animation — two rings pulsing outward from centre |
+| Miss | Dual sonar-ring pulse animation |
 
-## Audio
+**Audio** — explosion on hit, water splash on miss. Sounds overlap so rapid shots don't cut each other off. Volume slider in the turn bar persists across sessions.
 
-| Event | Sound |
-|-------|-------|
-| Hit | Explosion sound effect |
-| Miss | Water splash sound effect |
+**Fleet panel** — lists every ship with a cell-count bar below both boards. Ships strike through when sunk. Enemy ship names are always visible so both players can track remaining fleet sizes.
 
-Sounds overlay each other so rapid shots don't cut off previous plays. A volume slider in the turn bar lets you adjust or mute audio at any time — the setting persists across sessions.
+**Reconnect** — session tokens are stored in `localStorage`. Refreshing or losing connection restores the game automatically within 30 seconds.
 
-## Fleet panel
+**Online count** — the lobby shows how many players are currently connected.
 
-Below both boards a panel lists every ship by name with a mini cell-count bar showing its size. Ships strike through when sunk. Enemy ship names are always visible so both players can track remaining fleet sizes.
+## Testing
 
-## Reconnecting
+```bash
+cd server
+npm test
+```
 
-Session tokens are stored in `localStorage`. If you lose connection or refresh, the game restores automatically within 30 seconds. If the opponent doesn't reconnect within 30 seconds, you win by default.
+Tests use [Vitest](https://vitest.dev/) and cover server-side game logic.
+
+## Contributing
+
+1. Fork the repo and create a branch: `git checkout -b feat/your-feature`
+2. Make changes and run `cd server && npm test` to verify
+3. Open a pull request against `master`
