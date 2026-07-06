@@ -12,9 +12,9 @@ function generateCode() {
   return code;
 }
 
-export function createRoom(type = 'pvp') {
+export function createRoom(type = 'pvp', botDifficulty = 'medium') {
   const code = generateCode();
-  const room = new Room(code, type);
+  const room = new Room(code, type, botDifficulty);
   rooms.set(code, room);
   return room;
 }

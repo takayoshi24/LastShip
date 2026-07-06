@@ -7,9 +7,10 @@ const TURN_TIMEOUT_MS = 5 * 60_000;
 const RECONNECT_TIMEOUT_MS = 30_000;
 
 export class Room {
-  constructor(code, type = 'pvp') {
+  constructor(code, type = 'pvp', botDifficulty = 'medium') {
     this.code = code;
     this.type = type; // 'pvp' | 'bot'
+    this.botDifficulty = botDifficulty; // 'easy' | 'medium' | 'hard'
     this.state = 'waiting'; // waiting | placement | active | finished
     this.players = [null, null]; // index 0 = slot 1, index 1 = slot 2
     this.boards = [createBoard(), createBoard()];
@@ -141,7 +142,7 @@ export class Room {
     const delay = 1000 + Math.random() * 500;
     setTimeout(() => {
       if (this.state !== 'active') return;
-      const target = getNextShot(this.boards[0], this.sunkShips[0]);
+      const target = getNextShot(this.boards[0], this.sunkShips[0], this.botDifficulty);
       this.fireShot(1, target);
     }, delay);
   }

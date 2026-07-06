@@ -73,7 +73,8 @@ export function handleMessage(ws, rawData, wsToRoom) {
     }
 
     case 'PLAY_BOT': {
-      const room = createRoom('bot');
+      const difficulty = ['easy', 'medium', 'hard'].includes(msg.difficulty) ? msg.difficulty : 'medium';
+      const room = createRoom('bot', difficulty);
       const { slot, token } = room.addPlayer(ws);
       room.addBot();
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });

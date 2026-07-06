@@ -80,6 +80,31 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-top: 4px;
 }
 
+.bot-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+.bot-label { font-size: 0.85rem; color: var(--text-dim); text-align: center; }
+.bot-difficulty { display: flex; gap: 8px; }
+.btn-difficulty {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.btn-difficulty.easy   { background: #2e7d32; color: #fff; }
+.btn-difficulty.easy:hover   { background: #43a047; }
+.btn-difficulty.medium { background: #e65100; color: #fff; }
+.btn-difficulty.medium:hover { background: #fb8c00; }
+.btn-difficulty.hard   { background: #b71c1c; color: #fff; }
+.btn-difficulty.hard:hover   { background: #e53935; }
+
 .join-form { display: flex; gap: 8px; }
 .join-form input {
   flex: 1;

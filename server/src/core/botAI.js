@@ -107,13 +107,15 @@ function randomChoice(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function getNextShot(board, sunkShipNames) {
-  const sunkSizes = new Set(
-    sunkShipNames.map(name => FLEET_CONFIG.find(s => s.name === name)?.size).filter(Boolean)
-  );
-  const remainingSizes = FLEET_CONFIG
-    .filter(s => !sunkShipNames.includes(s.name))
-    .map(s => s.size);
+// easy  — pure random, no targeting
+// medium — hunt/target after hits, random search
+// hard   — hunt/target after hits, probability-density search
+export function getNextShot(board, sunkShipNames, difficulty = 'medium') {
+  const untried = getUntried(board);
+
+  if (difficulty === 'easy') {
+    return randomChoice(untried);
+  }
 
   const hits = getHitClusters(board);
 
@@ -122,8 +124,13 @@ export function getNextShot(board, sunkShipNames) {
     if (candidates.length > 0) return randomChoice(candidates);
   }
 
-  const densityTarget = probabilityDensity(board, remainingSizes);
-  if (densityTarget) return densityTarget;
+  if (difficulty === 'hard') {
+    const remainingSizes = FLEET_CONFIG
+      .filter(s => !sunkShipNames.includes(s.name))
+      .map(s => s.size);
+    const densityTarget = probabilityDensity(board, remainingSizes);
+    if (densityTarget) return densityTarget;
+  }
 
-  return randomChoice(getUntried(board));
+  return randomChoice(untried);
 }

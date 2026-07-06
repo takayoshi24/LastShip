@@ -33,8 +33,8 @@ export default function LobbyPage() {
     if (roomInput.trim()) sendMsg({ type: 'JOIN_ROOM', roomCode: roomInput.trim().toUpperCase() });
   }
 
-  function handlePlayBot() {
-    sendMsg({ type: 'PLAY_BOT' });
+  function handlePlayBot(difficulty) {
+    sendMsg({ type: 'PLAY_BOT', difficulty });
   }
 
   return (
@@ -58,7 +58,15 @@ export default function LobbyPage() {
         <div className="lobby-options">
           <button onClick={handleQuickMatch} className="btn-primary">Quick Match</button>
           <button onClick={handleCreateRoom} className="btn-primary">Create Private Room</button>
-          <button onClick={handlePlayBot} className="btn-secondary">Play vs Bot</button>
+
+          <div className="bot-section">
+            <span className="bot-label">Play vs Bot</span>
+            <div className="bot-difficulty">
+              <button onClick={() => handlePlayBot('easy')} className="btn-difficulty easy">Easy</button>
+              <button onClick={() => handlePlayBot('medium')} className="btn-difficulty medium">Medium</button>
+              <button onClick={() => handlePlayBot('hard')} className="btn-difficulty hard">Hard</button>
+            </div>
+          </div>
 
           <div className="divider">or join a room</div>
           <form onSubmit={handleJoinRoom} className="join-form">
