@@ -41,6 +41,9 @@ export default function LobbyPage() {
     <div className="lobby">
       <h1>LastShip</h1>
       <p className="subtitle">Battleship — play online with a friend or face the bot</p>
+      {state.onlineCount > 0 && (
+        <p className="online-count">{state.onlineCount} online</p>
+      )}
 
       {state.reconnectFailed && (
         <p className="error-banner">Connection lost. Start a new game.</p>

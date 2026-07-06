@@ -61,6 +61,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .lobby h1 { font-size: 3rem; letter-spacing: 0.1em; color: var(--accent); }
 .lobby .subtitle { color: var(--text-dim); font-size: 1.1rem; }
+.online-count { font-size: 0.85rem; color: var(--success); letter-spacing: 0.04em; }
 
 .lobby-options {
   display: flex;

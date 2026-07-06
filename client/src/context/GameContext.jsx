@@ -19,6 +19,7 @@ const initialState = {
   reconnectFailed: false,
   connectionStatus: 'connecting',
   placementError: null,
+  onlineCount: 0,
 };
 
 function reducer(state, action) {
@@ -104,10 +105,13 @@ function reducer(state, action) {
         ),
       };
 
+    case 'PLAYER_COUNT':
+      return { ...state, onlineCount: action.count };
+
     case 'RESET':
       localStorage.removeItem('lastship_player_token');
       localStorage.removeItem('lastship_room_code');
-      return { ...initialState, connectionStatus: state.connectionStatus };
+      return { ...initialState, connectionStatus: state.connectionStatus, onlineCount: state.onlineCount };
 
     default:
       return state;

@@ -43,8 +43,16 @@ const httpServer = createServer(async (req, res) => {
 const wss = new WebSocketServer({ server: httpServer });
 const wsToRoom = new Map();
 
+function broadcastPlayerCount() {
+  const msg = JSON.stringify({ type: 'PLAYER_COUNT', count: wss.clients.size });
+  for (const client of wss.clients) {
+    if (client.readyState === 1) client.send(msg);
+  }
+}
+
 wss.on('connection', (ws) => {
   console.log(`[WS] Client connected (total: ${wss.clients.size})`);
+  broadcastPlayerCount();
 
   ws.on('message', (data) => {
     handleMessage(ws, data.toString(), wsToRoom);
@@ -53,6 +61,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log(`[WS] Client disconnected (total: ${wss.clients.size})`);
     handleDisconnect(ws, wsToRoom);
+    broadcastPlayerCount();
   });
 
   ws.on('error', (err) => {
@@ -60,6 +69,6 @@ wss.on('connection', (ws) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`LastShip running on http://localhost:${PORT}`);
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`LastShip running on http://0.0.0.0:${PORT}`);
 });
