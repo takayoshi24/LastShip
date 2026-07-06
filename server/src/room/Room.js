@@ -86,7 +86,7 @@ export class Room {
 
   _startGame() {
     this.state = 'active';
-    this.currentTurn = Math.random() < 0.5 ? 0 : 1;
+    this.currentTurn = (this.type === 'bot' && this.botDifficulty === 'impossible') ? 0 : (Math.random() < 0.5 ? 0 : 1);
     this.broadcast({ type: 'GAME_START', firstPlayerSlot: this.currentTurn + 1 });
     // Send each player their own final placements (needed if auto-placed by server)
     for (let i = 0; i < 2; i++) {
