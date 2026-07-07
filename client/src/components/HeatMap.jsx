@@ -38,8 +38,8 @@ function Grid({ title, shots, accuracy }) {
 }
 
 export default function HeatMap({ shots, playerSlot, onClose }) {
-  const myShots = shots.filter(s => s.shooterSlot === playerSlot);
-  const oppShots = shots.filter(s => s.shooterSlot !== playerSlot);
+  const myShots = shots.filter(s => s.shooter === playerSlot);
+  const oppShots = shots.filter(s => s.shooter !== playerSlot);
 
   function pct(arr) {
     const hits = arr.filter(s => s.result === 'hit' || s.result === 'sunk').length;
