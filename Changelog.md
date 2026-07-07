@@ -3,6 +3,23 @@
 ---
 ## 2026-07-07 — 1 commit on master
 
+**Scope:** chore — exclude runtime rankings data from git
+
+### chore: add server/data/ to .gitignore
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-07
+
+**Files changed:**
+- `.gitignore` +1 — `server/data/` added
+
+---
+
+**Summary:** `server/data/rankings.json` is written at runtime by the ranking system and must not be tracked by git — a future `git pull` on a live server would overwrite real player entries. The storage module already creates the directory and file on first use, so ignoring it has no impact on a fresh deploy.
+
+---
+## 2026-07-07 — 1 commit on master
+
 **Scope:** feat — Impossible bot ranking / hall of fame
 
 ### feat: ranking system gated behind beating the Impossible bot
