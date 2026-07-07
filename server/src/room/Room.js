@@ -1,8 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createBoard, applyPlacements, randomPlacement, processShot, checkWin } from '../core/gameLogic.js';
+import { FLEET_CONFIG } from '../config/fleet.js';
 import { getNextShot } from '../core/botAI.js';
 import { createRankingToken } from '../rankings/tokens.js';
 import { mulberry32, dailySeed, todayString } from '../core/seededRandom.js';
+
+const emptyHits = () => Object.fromEntries(FLEET_CONFIG.map(s => [s.name, 0]));
 
 const PLACEMENT_TIMEOUT_MS = 60_000;
 const TURN_TIMEOUT_MS = 30_000;
@@ -25,6 +28,8 @@ export class Room {
     this._reconnectTimers = [null, null];
     this._placementReady = [false, false];
     this.gameStartTime = null;
+    this.shipHits = [emptyHits(), emptyHits()];
+    this.shotLog = [];
   }
 
   addPlayer(ws) {
@@ -131,6 +136,9 @@ export class Room {
     if (slotIndex !== this.currentTurn) return { error: 'NOT_YOUR_TURN' };
 
     const targetIndex = slotIndex === 0 ? 1 : 0;
+    const [r, c] = coordinate;
+    const hitShipName = this.boards[targetIndex][r][c].shipName;
+
     const result = processShot(this.boards[targetIndex], this.placements[targetIndex], coordinate);
 
     if (result.error) return result;
@@ -138,7 +146,24 @@ export class Room {
     this.boards[targetIndex] = result.board;
     if (result.sunkShip) this.sunkShips[targetIndex].push(result.sunkShip.name);
 
-    const payload = { type: 'SHOT_RESULT', coordinate, result: result.result, shooterSlot: slotIndex + 1 };
+    if (result.result === 'hit' && hitShipName) {
+      this.shipHits[targetIndex][hitShipName] = (this.shipHits[targetIndex][hitShipName] || 0) + 1;
+    }
+
+    this.shotLog.push({
+      shooter: slotIndex + 1,
+      coordinate,
+      result: result.result,
+      sunkCells: result.sunkShip?.cells ?? null,
+    });
+
+    const payload = {
+      type: 'SHOT_RESULT',
+      coordinate,
+      result: result.result,
+      shooterSlot: slotIndex + 1,
+      shipHits: this.shipHits,
+    };
     if (result.sunkShip) payload.sunkShip = result.sunkShip;
     this.broadcast(payload);
 
@@ -173,13 +198,16 @@ export class Room {
       && this.botDifficulty === 'impossible'
       && winnerIndex === 0;
 
+    const replayPayload = { shots: this.shotLog, placements: this.placements };
+
     if (isImpossibleWin) {
       const duration = Math.round((Date.now() - this.gameStartTime) / 1000);
       const rankingDay = this.type === 'daily' ? todayString() : null;
       const rankingToken = createRankingToken(duration, rankingDay);
-      this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken, rankingDay });
+      this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken, rankingDay, ...replayPayload });
+      this.send(1, { type: 'GAME_OVER', winner: 1, ...replayPayload });
     } else {
-      this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1 });
+      this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1, ...replayPayload });
     }
   }
 

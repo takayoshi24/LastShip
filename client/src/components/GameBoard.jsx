@@ -8,6 +8,7 @@ import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
 import SunkShipsList from './SunkShipsList.jsx';
+import ShipHealthBar from './ShipHealthBar.jsx';
 import ChatBox from './ChatBox.jsx';
 import { triggerExplosion } from '../services/explosion.js';
 import { cellsFor } from '../utils/grid.js';
@@ -200,6 +201,11 @@ export default function GameBoard() {
       <div className="boards-container">
         <div className="board-section">
           <h3>Your Fleet</h3>
+          <ShipHealthBar
+            label="Your ships"
+            hitsObj={state.shipHits[myIndex]}
+            sunkList={state.sunkShips[myIndex] ?? []}
+          />
           <div style={{ position: 'relative', display: 'inline-block' }}>
           <div className="grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
 
@@ -255,6 +261,11 @@ export default function GameBoard() {
 
         <div className="board-section">
           <h3>Your Attack</h3>
+          <ShipHealthBar
+            label="Enemy ships"
+            hitsObj={state.shipHits[oppIndex]}
+            sunkList={state.sunkShips[oppIndex] ?? []}
+          />
           <div style={{ position: 'relative', display: 'inline-block' }}>
           <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} ref={attackGridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>

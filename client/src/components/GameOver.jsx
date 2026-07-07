@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
+import ReplayViewer from './ReplayViewer.jsx';
 
 export default function GameOver() {
   const { state, reset } = useGame();
@@ -8,6 +9,7 @@ export default function GameOver() {
   const won = state.winner === state.playerSlot;
   const [rankName, setRankName] = useState('');
   const [rankStatus, setRankStatus] = useState('idle');
+  const [showReplay, setShowReplay] = useState(false);
 
   function goLobby() {
     reset();
@@ -70,10 +72,16 @@ export default function GameOver() {
         )}
 
         <div className="gameover-actions">
+          {state.replayData && (
+            <button onClick={() => setShowReplay(true)} className="btn-secondary">Watch Replay</button>
+          )}
           <button onClick={goLobby} className="btn-primary">Play Again</button>
-          <button onClick={goLobby} className="btn-secondary">Back to Lobby</button>
         </div>
       </div>
+
+      {showReplay && state.replayData && (
+        <ReplayViewer data={state.replayData} onClose={() => setShowReplay(false)} />
+      )}
     </div>
   );
 }

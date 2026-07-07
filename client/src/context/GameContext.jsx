@@ -26,6 +26,11 @@ const initialState = {
   boardEmoji: null,
   turnTimerTick: 0,
   gameMode: 'pvp',
+  shipHits: [
+    { Carrier: 0, Battleship: 0, Cruiser: 0, Submarine: 0, Destroyer: 0 },
+    { Carrier: 0, Battleship: 0, Cruiser: 0, Submarine: 0, Destroyer: 0 },
+  ],
+  replayData: null,
 };
 
 function reducer(state, action) {
@@ -46,6 +51,8 @@ function reducer(state, action) {
         placementError: null,
         messages: [],
         gameMode: action.gameMode ?? 'pvp',
+        shipHits: initialState.shipHits,
+        replayData: null,
       };
 
     case 'PLACEMENT_ACCEPTED':
@@ -58,7 +65,11 @@ function reducer(state, action) {
       return { ...state, screen: 'game', currentTurn: action.firstPlayerSlot, lastShotResult: null };
 
     case 'SHOT_RESULT':
-      return { ...state, lastShotResult: action };
+      return {
+        ...state,
+        lastShotResult: action,
+        shipHits: action.shipHits ?? state.shipHits,
+      };
 
     case 'GAME_OVER':
       return {
@@ -67,6 +78,7 @@ function reducer(state, action) {
         winner: action.winner,
         rankingToken: action.rankingToken ?? null,
         rankingDay: action.rankingDay ?? null,
+        replayData: action.shots ? { shots: action.shots, placements: action.placements } : null,
       };
 
     case 'TURN_TIMER':
