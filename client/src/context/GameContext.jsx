@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import { send, subscribe, init } from '../services/websocket.js';
+import { recordGame } from '../services/stats.js';
+import { loadAvatar } from '../components/AvatarPicker.jsx';
 
 const GameContext = createContext(null);
 
@@ -26,12 +28,26 @@ const initialState = {
   boardEmoji: null,
   turnTimerTick: 0,
   gameMode: 'pvp',
+  botDifficulty: null,
   shipHits: [
     { Carrier: 0, Battleship: 0, Cruiser: 0, Submarine: 0, Destroyer: 0 },
     { Carrier: 0, Battleship: 0, Cruiser: 0, Submarine: 0, Destroyer: 0 },
   ],
   replayData: null,
+  myAvatar: loadAvatar(),
+  opponentAvatar: null,
+  spectatorData: null,
+  myShotsFired: 0,
+  myShotsHit: 0,
+  shotsReceived: 0,
+  shotsReceivedHit: 0,
 };
+
+function statsMode(gameMode, botDifficulty) {
+  if (gameMode === 'pvp') return 'pvp';
+  if (gameMode === 'daily') return 'daily';
+  return `bot-${botDifficulty ?? 'medium'}`;
+}
 
 function reducer(state, action) {
   switch (action.type) {
@@ -51,8 +67,13 @@ function reducer(state, action) {
         placementError: null,
         messages: [],
         gameMode: action.gameMode ?? 'pvp',
+        botDifficulty: action.botDifficulty ?? null,
         shipHits: initialState.shipHits,
         replayData: null,
+        myShotsFired: 0,
+        myShotsHit: 0,
+        shotsReceived: 0,
+        shotsReceivedHit: 0,
       };
 
     case 'PLACEMENT_ACCEPTED':
@@ -64,14 +85,32 @@ function reducer(state, action) {
     case 'GAME_START':
       return { ...state, screen: 'game', currentTurn: action.firstPlayerSlot, lastShotResult: null };
 
-    case 'SHOT_RESULT':
+    case 'OPPONENT_INFO':
+      return { ...state, opponentAvatar: action.avatar };
+
+    case 'SHOT_RESULT': {
+      const isMyShot = action.shooterSlot === state.playerSlot;
       return {
         ...state,
         lastShotResult: action,
         shipHits: action.shipHits ?? state.shipHits,
+        myShotsFired:     isMyShot ? state.myShotsFired + 1     : state.myShotsFired,
+        myShotsHit:       isMyShot && action.result === 'hit' ? state.myShotsHit + 1 : state.myShotsHit,
+        shotsReceived:    !isMyShot ? state.shotsReceived + 1   : state.shotsReceived,
+        shotsReceivedHit: !isMyShot && action.result === 'hit' ? state.shotsReceivedHit + 1 : state.shotsReceivedHit,
       };
+    }
 
-    case 'GAME_OVER':
+    case 'GAME_OVER': {
+      const won = action.winner === state.playerSlot;
+      recordGame({
+        result: won ? 'win' : 'loss',
+        mode: statsMode(state.gameMode, state.botDifficulty),
+        shotsFired: state.myShotsFired,
+        shotsHit: state.myShotsHit,
+        shotsReceived: state.shotsReceived,
+        shotsReceivedHit: state.shotsReceivedHit,
+      });
       return {
         ...state,
         screen: 'gameover',
@@ -79,6 +118,21 @@ function reducer(state, action) {
         rankingToken: action.rankingToken ?? null,
         rankingDay: action.rankingDay ?? null,
         replayData: action.shots ? { shots: action.shots, placements: action.placements } : null,
+      };
+    }
+
+    case 'SPECTATOR_STATE':
+      return {
+        ...state,
+        screen: 'spectator',
+        spectatorData: {
+          boards: action.boards,
+          currentTurn: action.currentTurn,
+          sunkShips: action.sunkShips,
+          shipHits: action.shipHits,
+          avatars: action.avatars,
+          roomState: action.roomState,
+        },
       };
 
     case 'TURN_TIMER':
@@ -155,6 +209,9 @@ function reducer(state, action) {
 
     case 'PLAYER_COUNT':
       return { ...state, onlineCount: action.count };
+
+    case 'SET_MY_AVATAR':
+      return { ...state, myAvatar: action.avatar };
 
     case 'RESET':
       localStorage.removeItem('lastship_player_token');

@@ -169,9 +169,15 @@ export default function GameBoard() {
       <canvas ref={canvasRef} className="explosion-canvas" />
 
       <div className="turn-bar">
+        {state.myAvatar && (
+          <span className="turn-avatar" style={{ background: state.myAvatar.color }}>{state.myAvatar.icon}</span>
+        )}
         <span className={`turn-indicator ${isMyTurn ? 'my-turn' : 'opp-turn'}`}>
           {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
         </span>
+        {state.opponentAvatar && (
+          <span className="turn-avatar" style={{ background: state.opponentAvatar.color }}>{state.opponentAvatar.icon}</span>
+        )}
         <CountdownTimer seconds={30} key={state.turnTimerTick} onExpire={() => {}} />
         <div className="volume-control">
           {volume === 0 ? <LuVolumeX /> : <LuVolume2 />}

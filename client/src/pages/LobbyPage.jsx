@@ -1,22 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
+import AvatarPicker, { loadAvatar, saveAvatar } from '../components/AvatarPicker.jsx';
 
 export default function LobbyPage() {
-  const { state, sendMsg, reset } = useGame();
+  const { state, sendMsg, dispatch, reset } = useGame();
   const [waiting, setWaiting] = useState(false);
   const [roomInput, setRoomInput] = useState('');
+  const [spectateMode, setSpectateMode] = useState(false);
+  const [avatar, setAvatar] = useState(loadAvatar);
   const navigate = useNavigate();
 
   useEffect(() => {
     if ((state.screen === 'placement' || state.screen === 'waiting') && state.roomCode) {
       navigate(`/game/${state.roomCode}`);
     }
+    if (state.screen === 'spectator') {
+      navigate(`/spectate`);
+    }
   }, [state.screen, state.roomCode, navigate]);
+
+  function updateAvatar(next) {
+    setAvatar(next);
+    saveAvatar(next);
+    dispatch({ type: 'SET_MY_AVATAR', avatar: next });
+  }
 
   function handleQuickMatch() {
     setWaiting(true);
-    sendMsg({ type: 'QUICK_MATCH' });
+    sendMsg({ type: 'QUICK_MATCH', avatar });
   }
 
   function handleCancelQueue() {
@@ -25,27 +37,36 @@ export default function LobbyPage() {
   }
 
   function handleCreateRoom() {
-    sendMsg({ type: 'CREATE_ROOM' });
+    sendMsg({ type: 'CREATE_ROOM', avatar });
   }
 
   function handleJoinRoom(e) {
     e.preventDefault();
-    if (roomInput.trim()) sendMsg({ type: 'JOIN_ROOM', roomCode: roomInput.trim().toUpperCase() });
+    if (!roomInput.trim()) return;
+    const code = roomInput.trim().toUpperCase();
+    if (spectateMode) {
+      sendMsg({ type: 'SPECTATE', roomCode: code });
+    } else {
+      sendMsg({ type: 'JOIN_ROOM', roomCode: code, avatar });
+    }
   }
 
   function handlePlayBot(difficulty) {
-    sendMsg({ type: 'PLAY_BOT', difficulty });
+    sendMsg({ type: 'PLAY_BOT', difficulty, avatar });
   }
 
   function handleDailyChallenge() {
-    sendMsg({ type: 'PLAY_DAILY' });
+    sendMsg({ type: 'PLAY_DAILY', avatar });
   }
 
   return (
     <div className="lobby">
       <h1>LastShip</h1>
       <p className="subtitle">Battleship — play online with a friend or face the bot</p>
-      <Link to="/ranking" className="ranking-lobby-link">Hall of Fame</Link>
+      <div className="lobby-links">
+        <Link to="/ranking" className="ranking-lobby-link">Hall of Fame</Link>
+        <Link to="/stats" className="ranking-lobby-link">My Stats</Link>
+      </div>
       {state.onlineCount > 0 && (
         <p className="online-count">{state.onlineCount} online</p>
       )}
@@ -53,6 +74,8 @@ export default function LobbyPage() {
       {state.reconnectFailed && (
         <p className="error-banner">Connection lost. Start a new game.</p>
       )}
+
+      <AvatarPicker avatar={avatar} onChange={updateAvatar} />
 
       {waiting ? (
         <div className="panel">
@@ -87,7 +110,19 @@ export default function LobbyPage() {
               placeholder="Room code"
               maxLength={6}
             />
-            <button type="submit" className="btn-primary">Join</button>
+            <div className="join-actions">
+              <button type="submit" className="btn-primary" disabled={!roomInput.trim()}>
+                {spectateMode ? 'Watch' : 'Join'}
+              </button>
+              <label className="spectate-toggle">
+                <input
+                  type="checkbox"
+                  checked={spectateMode}
+                  onChange={e => setSpectateMode(e.target.checked)}
+                />
+                Spectate
+              </label>
+            </div>
           </form>
         </div>
       )}

@@ -26,12 +26,18 @@ export default function ChatBox() {
         {state.messages.length === 0 && (
           <p className="chat-empty">Say something...</p>
         )}
-        {state.messages.map(m => (
-          <div key={m.id} className={`chat-msg ${m.senderSlot === state.playerSlot ? 'mine' : 'theirs'}`}>
-            <span className="chat-name">{m.senderSlot === state.playerSlot ? 'You' : 'Opp'}</span>
-            <span className="chat-text">{m.text}</span>
-          </div>
-        ))}
+        {state.messages.map(m => {
+          const isMe = m.senderSlot === state.playerSlot;
+          const avatar = isMe ? state.myAvatar : state.opponentAvatar;
+          return (
+            <div key={m.id} className={`chat-msg ${isMe ? 'mine' : 'theirs'}`}>
+              {avatar && (
+                <span className="chat-avatar" style={{ background: avatar.color }}>{avatar.icon}</span>
+              )}
+              <span className="chat-text">{m.text}</span>
+            </div>
+          );
+        })}
         <div ref={endRef} />
       </div>
       <div className="chat-emojis">

@@ -11,6 +11,16 @@ function send(ws, msg) {
   if (ws.readyState === 1) ws.send(JSON.stringify(msg));
 }
 
+const VALID_COLORS = ['#2563eb','#dc2626','#16a34a','#9333ea','#ea580c','#db2777','#0891b2','#ca8a04'];
+const VALID_ICONS  = ['🦈','🐙','🐬','⚓','💀','🐳','🦑','🔱'];
+function sanitizeAvatar(raw) {
+  if (!raw) return null;
+  return {
+    color: VALID_COLORS.includes(raw.color) ? raw.color : '#2563eb',
+    icon:  VALID_ICONS.includes(raw.icon)   ? raw.icon  : '🦈',
+  };
+}
+
 export function handleMessage(ws, rawData, wsToRoom) {
   let msg;
   try {
@@ -22,8 +32,10 @@ export function handleMessage(ws, rawData, wsToRoom) {
 
   switch (msg.type) {
     case 'CREATE_ROOM': {
+      const avatar = sanitizeAvatar(msg.avatar);
       const room = createRoom('pvp');
       const { slot, token } = room.addPlayer(ws);
+      room.setAvatar(slot - 1, avatar);
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
       send(ws, { type: 'WAITING_FOR_OPPONENT', roomCode: room.code, playerSlot: slot, playerToken: token });
       break;
@@ -35,11 +47,12 @@ export function handleMessage(ws, rawData, wsToRoom) {
       if (room.isFull()) return send(ws, { type: 'ERROR', code: 'ROOM_FULL', message: 'Room is full' });
       if (room.state !== 'waiting') return send(ws, { type: 'ERROR', code: 'ROOM_STARTED', message: 'Game already started' });
 
+      const avatar = sanitizeAvatar(msg.avatar);
       const { slot, token } = room.addPlayer(ws);
+      room.setAvatar(slot - 1, avatar);
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
 
       const ready = { type: 'ROOM_READY', roomCode: room.code };
-      // Notify both players
       const p1 = room.players[0];
       send(p1.ws, { ...ready, playerSlot: 1, playerToken: p1.token });
       send(ws, { ...ready, playerSlot: slot, playerToken: token });
@@ -49,7 +62,7 @@ export function handleMessage(ws, rawData, wsToRoom) {
     }
 
     case 'QUICK_MATCH': {
-      const result = enqueueQuickMatch(ws);
+      const result = enqueueQuickMatch(ws, sanitizeAvatar(msg.avatar));
       if (result.queued) {
         wsToRoom.set(ws, { roomCode: null, slotIndex: null, inQueue: true });
         send(ws, { type: 'QUEUE_JOINED' });
@@ -57,11 +70,20 @@ export function handleMessage(ws, rawData, wsToRoom) {
         const room = result.room;
         const slotIndex = room.players.findIndex(p => p && p.ws === ws);
         wsToRoom.set(ws, { roomCode: room.code, slotIndex });
-        // Also register the waiting player who was dequeued inside enqueueQuickMatch
         const waitingSlotIndex = 1 - slotIndex;
         const waitingWs = room.players[waitingSlotIndex]?.ws;
         if (waitingWs) wsToRoom.set(waitingWs, { roomCode: room.code, slotIndex: waitingSlotIndex });
       }
+      break;
+    }
+
+    case 'SPECTATE': {
+      const room = getRoom(msg.roomCode?.toUpperCase?.());
+      if (!room || room.state === 'waiting' || room.state === 'finished') {
+        return send(ws, { type: 'ERROR', code: 'CANNOT_SPECTATE', message: 'Room not available for spectating' });
+      }
+      wsToRoom.set(ws, { roomCode: room.code, slotIndex: -1, isSpectator: true });
+      room.addSpectator(ws);
       break;
     }
 
@@ -76,9 +98,10 @@ export function handleMessage(ws, rawData, wsToRoom) {
       const difficulty = ['easy', 'medium', 'hard', 'superhard', 'impossible'].includes(msg.difficulty) ? msg.difficulty : 'medium';
       const room = createRoom('bot', difficulty);
       const { slot, token } = room.addPlayer(ws);
+      room.setAvatar(slot - 1, sanitizeAvatar(msg.avatar));
       room.addBot();
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
-      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token });
+      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token, gameMode: 'bot', botDifficulty: difficulty });
       room.startPlacement();
       break;
     }
@@ -125,9 +148,10 @@ export function handleMessage(ws, rawData, wsToRoom) {
     case 'PLAY_DAILY': {
       const room = createRoom('daily', 'impossible');
       const { slot, token } = room.addPlayer(ws);
+      room.setAvatar(slot - 1, sanitizeAvatar(msg.avatar));
       room.addBot();
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
-      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token, gameMode: 'daily' });
+      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token, gameMode: 'daily', botDifficulty: 'impossible' });
       room.startPlacement();
       break;
     }
@@ -187,11 +211,14 @@ export function handleDisconnect(ws, wsToRoom) {
 
   if (context.roomCode) {
     const room = getRoom(context.roomCode);
-    if (room && context.slotIndex !== null) {
-      room.disconnect(context.slotIndex);
-
-      if (room.state === 'finished') {
-        setTimeout(() => deleteRoom(context.roomCode), 5000);
+    if (room) {
+      if (context.isSpectator) {
+        room.removeSpectator(ws);
+      } else if (context.slotIndex !== null && context.slotIndex >= 0) {
+        room.disconnect(context.slotIndex);
+        if (room.state === 'finished') {
+          setTimeout(() => deleteRoom(context.roomCode), 5000);
+        }
       }
     }
   }

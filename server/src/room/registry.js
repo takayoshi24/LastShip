@@ -31,12 +31,14 @@ export function deleteRoom(code) {
   }
 }
 
-export function enqueueQuickMatch(ws) {
+export function enqueueQuickMatch(ws, avatar) {
   if (quickMatchQueue.length > 0) {
     const waiting = quickMatchQueue.shift();
     const room = createRoom('pvp');
     const p1 = room.addPlayer(waiting.ws);
     const p2 = room.addPlayer(ws);
+    room.setAvatar(p1.slot - 1, waiting.avatar);
+    room.setAvatar(p2.slot - 1, avatar);
 
     const ready = { type: 'ROOM_READY', roomCode: room.code };
     waiting.ws.send(JSON.stringify({ ...ready, playerSlot: p1.slot, playerToken: p1.token }));
@@ -46,7 +48,7 @@ export function enqueueQuickMatch(ws) {
     return { queued: false, room };
   }
 
-  quickMatchQueue.push({ ws });
+  quickMatchQueue.push({ ws, avatar });
   return { queued: true };
 }
 

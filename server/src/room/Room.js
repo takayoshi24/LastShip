@@ -30,6 +30,33 @@ export class Room {
     this.gameStartTime = null;
     this.shipHits = [emptyHits(), emptyHits()];
     this.shotLog = [];
+    this.spectators = [];
+    this.avatars = [null, null];
+  }
+
+  setAvatar(slotIndex, avatar) {
+    this.avatars[slotIndex] = avatar ?? null;
+  }
+
+  addSpectator(ws) {
+    this.spectators.push(ws);
+    const masked = (idx) => this.boards[idx].map(row =>
+      row.map(cell => ({ state: cell.state === 'ship' ? 'empty' : cell.state }))
+    );
+    const payload = {
+      type: 'SPECTATOR_STATE',
+      boards: [masked(0), masked(1)],
+      currentTurn: this.currentTurn !== null ? this.currentTurn + 1 : null,
+      sunkShips: this.sunkShips,
+      shipHits: this.shipHits,
+      avatars: this.avatars,
+      roomState: this.state,
+    };
+    if (ws.readyState === 1) ws.send(JSON.stringify(payload));
+  }
+
+  removeSpectator(ws) {
+    this.spectators = this.spectators.filter(s => s !== ws);
   }
 
   addPlayer(ws) {
@@ -57,6 +84,10 @@ export class Room {
   broadcast(msg) {
     this.send(0, msg);
     this.send(1, msg);
+    const raw = JSON.stringify(msg);
+    for (const ws of this.spectators) {
+      if (ws.readyState === 1) ws.send(raw);
+    }
   }
 
   startPlacement() {
@@ -98,10 +129,16 @@ export class Room {
     this.gameStartTime = Date.now();
     const isImpossible = (this.type === 'bot' || this.type === 'daily') && this.botDifficulty === 'impossible';
     this.currentTurn = isImpossible ? 0 : (Math.random() < 0.5 ? 0 : 1);
+    const botAvatar = (this.type === 'bot' || this.type === 'daily')
+      ? { color: '#64748b', icon: '🤖' } : null;
+    if (botAvatar) this.avatars[1] = botAvatar;
+
     this.broadcast({ type: 'GAME_START', firstPlayerSlot: this.currentTurn + 1 });
     for (let i = 0; i < 2; i++) {
       if (!this.players[i]?.isBot) {
         this.send(i, { type: 'YOUR_PLACEMENTS', placements: this.placements[i] });
+        const oppIdx = i === 0 ? 1 : 0;
+        this.send(i, { type: 'OPPONENT_INFO', avatar: this.avatars[oppIdx] });
       }
     }
     this._startTurnTimer();
