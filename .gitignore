@@ -4,3 +4,4 @@ dist/
 .env.local
 *.stackdump
 server/data/
+data/

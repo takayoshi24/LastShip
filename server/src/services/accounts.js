@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const DATA_DIR = join(__dirname, '../../../data');
+const DATA_DIR = join(__dirname, '../../data');
 const FILE = join(DATA_DIR, 'accounts.json');
 
 const DEFAULT_ELO = 1000;
