@@ -34,7 +34,7 @@ export default function LobbyPage() {
 
   function handleQuickMatch() {
     setWaiting(true);
-    sendMsg({ type: 'QUICK_MATCH', avatar });
+    sendMsg({ type: 'QUICK_MATCH', avatar, gameOptions });
   }
 
   function handleCancelQueue() {
