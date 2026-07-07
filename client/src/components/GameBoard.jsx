@@ -172,7 +172,7 @@ export default function GameBoard() {
         <span className={`turn-indicator ${isMyTurn ? 'my-turn' : 'opp-turn'}`}>
           {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
         </span>
-        <CountdownTimer seconds={30} key={state.turnTimerTick} onExpire={() => {}} />}
+        <CountdownTimer seconds={30} key={state.turnTimerTick} onExpire={() => {}} />
         <div className="volume-control">
           {volume === 0 ? <LuVolumeX /> : <LuVolume2 />}
           <input
@@ -312,7 +312,7 @@ export default function GameBoard() {
       </div>
 
       <SunkShipsList sunkShips={state.sunkShips} playerSlot={state.playerSlot} />
-      {state.gameMode === 'pvp' && <ChatBox />
+      {state.gameMode === 'pvp' && <ChatBox />}
     </div>
   );
 }
