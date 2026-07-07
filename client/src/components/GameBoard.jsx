@@ -248,7 +248,7 @@ export default function GameBoard() {
             )}
           </div>
           <AnimatePresence>
-            {state.boardEmoji?.senderSlot === state.playerSlot && (
+            {state.boardEmoji && (
               <motion.div key={state.boardEmoji.id} className="board-emoji"
                 initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
@@ -310,13 +310,6 @@ export default function GameBoard() {
             )}
           </div>
           <AnimatePresence>
-            {state.boardEmoji?.senderSlot !== state.playerSlot && state.boardEmoji && (
-              <motion.div key={state.boardEmoji.id} className="board-emoji"
-                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
-                {state.boardEmoji.emoji}
-              </motion.div>
-            )}
           </AnimatePresence>
           </div>
         </div>
