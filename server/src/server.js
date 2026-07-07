@@ -57,7 +57,7 @@ const httpServer = createServer(async (req, res) => {
       }
       const entry = consumeRankingToken(token);
       if (!entry) { res.writeHead(403); return res.end('Invalid or expired token'); }
-      const rankings = addEntry(trimmedName, entry.shots);
+      const rankings = addEntry(trimmedName, entry.duration);
       res.writeHead(201, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(rankings));
     }

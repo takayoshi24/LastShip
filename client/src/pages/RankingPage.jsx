@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+function formatDuration(secs) {
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+}
+
 export default function RankingPage() {
   const [rankings, setRankings] = useState(null);
   const [error, setError] = useState(false);
@@ -18,7 +23,7 @@ export default function RankingPage() {
         <Link to="/" className="btn-ghost">← Back</Link>
         <div>
           <h1>Impossible Ranking</h1>
-          <p className="ranking-subtitle">Defeated the Impossible bot — sorted by fewest shots</p>
+          <p className="ranking-subtitle">Defeated the Impossible bot — sorted by fastest clear</p>
         </div>
       </div>
 
@@ -33,7 +38,7 @@ export default function RankingPage() {
             <tr>
               <th>#</th>
               <th>Name</th>
-              <th>Shots</th>
+              <th>Time</th>
               <th>Date</th>
             </tr>
           </thead>
@@ -44,7 +49,7 @@ export default function RankingPage() {
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                 </td>
                 <td className="rank-name">{entry.name}</td>
-                <td className="rank-shots">{entry.shots}</td>
+                <td className="rank-shots">{formatDuration(entry.duration)}</td>
                 <td className="rank-date">{new Date(entry.date).toLocaleDateString()}</td>
               </tr>
             ))}

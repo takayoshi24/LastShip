@@ -17,10 +17,10 @@ export function getRankings() {
   return JSON.parse(readFileSync(FILE, 'utf-8'));
 }
 
-export function addEntry(name, shots) {
+export function addEntry(name, duration) {
   const rankings = getRankings();
-  rankings.push({ name, shots, date: new Date().toISOString() });
-  rankings.sort((a, b) => a.shots - b.shots || new Date(a.date) - new Date(b.date));
+  rankings.push({ name, duration, date: new Date().toISOString() });
+  rankings.sort((a, b) => a.duration - b.duration || new Date(a.date) - new Date(b.date));
   const trimmed = rankings.slice(0, MAX_ENTRIES);
   writeFileSync(FILE, JSON.stringify(trimmed, null, 2), 'utf-8');
   return trimmed;

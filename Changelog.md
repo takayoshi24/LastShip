@@ -3,6 +3,29 @@
 ---
 ## 2026-07-07 — 1 commit on master
 
+**Scope:** fix — replace shot count with game duration in Impossible ranking
+
+### fix: rank by game duration instead of shot count
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-07
+
+Beating the Impossible bot requires hitting every single shot (17 hits, 0 misses), so all winners always end on exactly 17 shots — sorting by shots is meaningless. Replaced with game duration (seconds from `_startGame` to the winning shot), which rewards players who clear the board fastest. `Room.gameStartTime` is set when the game begins; `_endGame` computes `duration = Math.round((Date.now() - gameStartTime) / 1000)` and passes it to the ranking token instead of `humanShotCount`. Storage and token modules updated to use `duration`; the leaderboard column changed from "Shots" to "Time" with a `formatDuration` helper that formats as "Xs" or "Xm Ys".
+
+**Files changed:**
+- `server/src/room/Room.js` — `gameStartTime` replaces `humanShotCount`; duration computed in `_endGame`
+- `server/src/rankings/tokens.js` — stores `duration` instead of `shots`
+- `server/src/rankings/storage.js` — persists and sorts by `duration`
+- `server/src/server.js` — passes `entry.duration` to `addEntry`
+- `client/src/pages/RankingPage.jsx` — "Time" column with `formatDuration`; subtitle updated
+
+---
+
+**Summary:** The Impossible ranking was sorting by a metric that never varied — every winner fires exactly 17 shots. Switching to game duration makes the leaderboard meaningful: players who click faster and think quicker rank higher, while players who take their time fall behind. The time is measured server-side so it cannot be spoofed by the client.
+
+---
+## 2026-07-07 — 1 commit on master
+
 **Scope:** chore — exclude runtime rankings data from git
 
 ### chore: add server/data/ to .gitignore

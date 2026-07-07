@@ -22,7 +22,7 @@ export class Room {
     this._turnTimer = null;
     this._reconnectTimers = [null, null];
     this._placementReady = [false, false];
-    this.humanShotCount = 0;
+    this.gameStartTime = null;
   }
 
   addPlayer(ws) {
@@ -88,6 +88,7 @@ export class Room {
 
   _startGame() {
     this.state = 'active';
+    this.gameStartTime = Date.now();
     this.currentTurn = (this.type === 'bot' && this.botDifficulty === 'impossible') ? 0 : (Math.random() < 0.5 ? 0 : 1);
     this.broadcast({ type: 'GAME_START', firstPlayerSlot: this.currentTurn + 1 });
     // Send each player their own final placements (needed if auto-placed by server)
@@ -120,7 +121,6 @@ export class Room {
 
     if (result.error) return result;
 
-    if (this.type === 'bot' && slotIndex === 0) this.humanShotCount++;
 
     this.boards[targetIndex] = result.board;
     if (result.sunkShip) this.sunkShips[targetIndex].push(result.sunkShip.name);
@@ -157,7 +157,8 @@ export class Room {
     clearTimeout(this._placementTimer);
 
     if (this.type === 'bot' && this.botDifficulty === 'impossible' && winnerIndex === 0) {
-      const rankingToken = createRankingToken(this.humanShotCount);
+      const duration = Math.round((Date.now() - this.gameStartTime) / 1000);
+      const rankingToken = createRankingToken(duration);
       this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken });
     } else {
       this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1 });

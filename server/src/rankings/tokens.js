@@ -3,9 +3,9 @@ import { randomUUID } from 'crypto';
 const tokens = new Map();
 const TTL_MS = 10 * 60 * 1000;
 
-export function createRankingToken(shots) {
+export function createRankingToken(duration) {
   const token = randomUUID();
-  tokens.set(token, { shots, expiresAt: Date.now() + TTL_MS });
+  tokens.set(token, { duration, expiresAt: Date.now() + TTL_MS });
   return token;
 }
 
