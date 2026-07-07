@@ -63,7 +63,7 @@ export function handleMessage(ws, rawData, wsToRoom) {
     }
 
     case 'QUICK_MATCH': {
-      const result = enqueueQuickMatch(ws, sanitizeAvatar(msg.avatar), msg.gameOptions ?? {});
+      const result = enqueueQuickMatch(ws, sanitizeAvatar(msg.avatar), msg.gameOptions ?? {}, msg.accountToken ?? null);
       if (result.queued) {
         wsToRoom.set(ws, { roomCode: null, slotIndex: null, inQueue: true });
         send(ws, { type: 'QUEUE_JOINED' });

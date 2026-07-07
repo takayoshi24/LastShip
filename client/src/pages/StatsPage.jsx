@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getStats, clearStats } from '../services/stats.js';
+import { loadAccount, fetchMe } from '../services/account.js';
 
 const MODE_LABELS = {
   pvp: 'PvP',
@@ -24,6 +25,13 @@ function StatCard({ label, value, sub }) {
 
 export default function StatsPage() {
   const [stats, setStats] = useState(() => getStats());
+  const [serverAccount, setServerAccount] = useState(null);
+
+  useEffect(() => {
+    const acct = loadAccount();
+    if (!acct?.token) return;
+    fetchMe(acct.token).then(data => { if (data) setServerAccount({ ...data, name: acct.name }); });
+  }, []);
 
   function handleClear() {
     if (window.confirm('Clear all stats?')) {
@@ -89,6 +97,25 @@ export default function StatsPage() {
           </table>
 
           <button onClick={handleClear} className="btn-secondary stats-clear">Clear All Stats</button>
+
+          {serverAccount && (
+            <>
+              <h3 className="stats-section-title">
+                {serverAccount.name} — Ranked PvP  <span className="elo-badge">ELO {serverAccount.elo}</span>
+              </h3>
+              <div className="stat-grid">
+                <StatCard label="Wins" value={serverAccount.pvp?.wins ?? 0} />
+                <StatCard label="Losses" value={serverAccount.pvp?.losses ?? 0} />
+                <StatCard
+                  label="Accuracy"
+                  value={serverAccount.pvp?.shotsFired
+                    ? `${Math.round((serverAccount.pvp.shotsHit / serverAccount.pvp.shotsFired) * 100)}%`
+                    : '—'}
+                  sub="PvP shots on target"
+                />
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

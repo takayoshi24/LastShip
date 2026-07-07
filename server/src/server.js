@@ -7,6 +7,7 @@ import { handleMessage, handleDisconnect } from './handlers/messageRouter.js';
 import { getRankings, addEntry, getDailyRankings, addDailyEntry } from './rankings/storage.js';
 import { consumeRankingToken } from './rankings/tokens.js';
 import { todayString } from './core/seededRandom.js';
+import { register, login, getAccount } from './services/accounts.js';
 
 const PORT = process.env.PORT ?? 3000;
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -34,6 +35,31 @@ function readBody(req) {
 
 const httpServer = createServer(async (req, res) => {
   const url = req.url.split('?')[0];
+
+  if (url === '/api/auth/register' || url === '/api/auth/login') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method !== 'POST') { res.writeHead(405); return res.end(); }
+    let data;
+    try { data = JSON.parse(await readBody(req)); } catch { res.writeHead(400); return res.end('Bad request'); }
+    const result = url === '/api/auth/register'
+      ? register(data.name, data.pin)
+      : login(data.name, data.pin);
+    const status = result.error ? 400 : 200;
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  }
+
+  if (url === '/api/auth/me') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
+    const token = new URLSearchParams(req.url.split('?')[1] ?? '').get('token');
+    const account = getAccount(token);
+    if (!account) { res.writeHead(404); return res.end('Not found'); }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(account));
+  }
 
   if (url === '/api/rankings/daily') {
     res.setHeader('Access-Control-Allow-Origin', '*');

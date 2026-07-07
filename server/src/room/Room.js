@@ -4,6 +4,7 @@ import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { getNextShot } from '../core/botAI.js';
 import { createRankingToken } from '../rankings/tokens.js';
 import { mulberry32, dailySeed, todayString } from '../core/seededRandom.js';
+import { updateEloAndStats } from '../services/accounts.js';
 
 const emptyHits = () => Object.fromEntries(FLEET_CONFIG.map(s => [s.name, 0]));
 
@@ -32,9 +33,10 @@ export class Room {
     this.shotLog = [];
     this.spectators = [];
     this.avatars = [null, null];
-    this.gameOptions = { salvo: false };
+    this.gameOptions = { salvo: false, fog: false };
     this.shotsRemainingThisTurn = 0;
     this.rematchVotes = [false, false];
+    this.accountTokens = [null, null];
   }
 
   setAvatar(slotIndex, avatar) {
@@ -42,7 +44,11 @@ export class Room {
   }
 
   setGameOptions(options = {}) {
-    this.gameOptions = { salvo: !!options.salvo };
+    this.gameOptions = { salvo: !!options.salvo, fog: !!options.fog };
+  }
+
+  setAccountToken(slotIndex, token) {
+    this.accountTokens[slotIndex] = token ?? null;
   }
 
   addSpectator(ws) {
@@ -288,6 +294,15 @@ export class Room {
 
     const replayPayload = { shots: this.shotLog, placements: this.placements };
 
+    // ELO update for PvP games where both players are registered
+    let eloDeltas = null;
+    if (this.type === 'pvp' && this.accountTokens[0] && this.accountTokens[1]) {
+      const winnerToken = this.accountTokens[winnerIndex];
+      eloDeltas = updateEloAndStats(
+        this.accountTokens[0], this.accountTokens[1], winnerToken, this.shotLog
+      );
+    }
+
     if (isImpossibleWin) {
       const duration = Math.round((Date.now() - this.gameStartTime) / 1000);
       const rankingDay = this.type === 'daily' ? todayString() : null;
@@ -295,7 +310,11 @@ export class Room {
       this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken, rankingDay, ...replayPayload });
       this.send(1, { type: 'GAME_OVER', winner: 1, ...replayPayload });
     } else {
-      this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1, ...replayPayload });
+      const extra = eloDeltas
+        ? { eloDeltas: [eloDeltas.elo1, eloDeltas.elo2] }
+        : {};
+      this.send(0, { type: 'GAME_OVER', winner: winnerIndex + 1, ...replayPayload, ...extra });
+      this.send(1, { type: 'GAME_OVER', winner: winnerIndex + 1, ...replayPayload, ...extra });
     }
   }
 

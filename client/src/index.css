@@ -1359,3 +1359,186 @@ kbd {
   font-size: 0.8rem;
   color: var(--text);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ACCOUNT BAR & MODAL
+   ═══════════════════════════════════════════════════════════ */
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+.account-name { color: var(--text); font-weight: 600; }
+.account-elo  { color: var(--accent); font-weight: 700; background: color-mix(in srgb, var(--accent) 15%, transparent); padding: 2px 8px; border-radius: 4px; }
+.account-logout { font-size: 0.75rem; margin-left: auto; }
+.account-login-btn { font-size: 0.8rem; }
+
+.account-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 360px;
+  overflow: hidden;
+}
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px 22px;
+}
+.account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.account-field span { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.account-field input {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+.account-field input:focus { outline: none; border-color: var(--accent); }
+.account-error { color: var(--danger); font-size: 0.82rem; text-align: center; }
+.account-switch { font-size: 0.78rem; color: var(--text-dim); }
+
+/* ═══════════════════════════════════════════════════════════
+   ELO DELTA IN GAME-OVER
+   ═══════════════════════════════════════════════════════════ */
+.elo-delta { font-size: 1rem; font-weight: 700; }
+.elo-up   { color: var(--success); }
+.elo-down { color: var(--danger); }
+.elo-badge {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODE TOGGLES (salvo + fog stacked)
+   ═══════════════════════════════════════════════════════════ */
+.mode-toggles { display: flex; flex-direction: column; gap: 6px; }
+
+/* ═══════════════════════════════════════════════════════════
+   SHOT HEATMAP MODAL
+   ═══════════════════════════════════════════════════════════ */
+.heatmap-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.heatmap-body {
+  display: flex;
+  gap: 24px;
+  padding: 18px 22px;
+  overflow-y: auto;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.heatmap-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 0 22px 16px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.hm-legend-item { display: flex; align-items: center; gap: 5px; }
+.hm-dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+
+.heatmap-grid-wrap { display: flex; flex-direction: column; align-items: center; }
+.heatmap-title { font-size: 0.85rem; color: var(--accent); margin-bottom: 2px; }
+.heatmap-accuracy { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 8px; }
+
+.hm-lg-wrap { display: inline-flex; flex-direction: column; }
+.hm-col-headers {
+  display: grid;
+  grid-template-columns: 14px repeat(10, 22px);
+  column-gap: 2px;
+  margin-bottom: 2px;
+}
+.hm-body { display: flex; gap: 2px; }
+.hm-row-labels {
+  display: grid;
+  grid-template-rows: repeat(10, 22px);
+  row-gap: 2px;
+  width: 12px;
+}
+.hm-lbl { font-size: 0.55rem; color: var(--text-dim); display: flex; align-items: center; justify-content: center; user-select: none; }
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 22px);
+  grid-template-rows: repeat(10, 22px);
+  gap: 2px;
+}
+.hm-cell { border-radius: 2px; }
+.hm-empty { background: var(--cell-empty); }
+.hm-hit   { background: var(--cell-hit); }
+.hm-miss  { background: var(--cell-miss); }
+.hm-dot.hm-empty { background: var(--cell-empty); border: 1px solid var(--border); }
+.hm-dot.hm-hit   { background: var(--cell-hit); }
+.hm-dot.hm-miss  { background: var(--cell-miss); }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE POLISH  (≤ 640px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  :root { --cell: 28px; }
+
+  .game-board { padding: 0 8px; }
+
+  .boards-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .turn-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .turn-indicator { font-size: 0.85rem; }
+  .volume-control { margin-left: 0; }
+  .forfeit-actions { margin-left: 0; }
+  .kb-hint { display: none !important; }
+
+  .lobby { padding: 16px 12px; gap: 12px; }
+  h1 { font-size: 2rem; }
+
+  .bot-difficulty { gap: 4px; }
+  .bot-difficulty button { padding: 6px 8px; font-size: 0.75rem; }
+
+  .heatmap-body { gap: 16px; padding: 12px; }
+  .heatmap-grid { grid-template-columns: repeat(10, 18px); grid-template-rows: repeat(10, 18px); }
+  .hm-row-labels { grid-template-rows: repeat(10, 18px); }
+  .hm-col-headers { grid-template-columns: 12px repeat(10, 18px); }
+
+  .gameover-actions { flex-wrap: wrap; justify-content: center; }
+}
+
+@media (max-width: 400px) {
+  :root { --cell: 24px; }
+  .heatmap-grid { grid-template-columns: repeat(10, 16px); grid-template-rows: repeat(10, 16px); }
+  .hm-row-labels { grid-template-rows: repeat(10, 16px); }
+  .hm-col-headers { grid-template-columns: 10px repeat(10, 16px); }
+}

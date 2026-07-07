@@ -31,18 +31,23 @@ export function deleteRoom(code) {
   }
 }
 
-export function enqueueQuickMatch(ws, avatar, gameOptions = {}) {
+export function enqueueQuickMatch(ws, avatar, gameOptions = {}, accountToken = null) {
   const salvo = !!gameOptions.salvo;
-  const matchIdx = quickMatchQueue.findIndex(e => !!e.gameOptions.salvo === salvo);
+  const fog = !!gameOptions.fog;
+  const matchIdx = quickMatchQueue.findIndex(e =>
+    !!e.gameOptions.salvo === salvo && !!e.gameOptions.fog === fog
+  );
 
   if (matchIdx !== -1) {
     const [waiting] = quickMatchQueue.splice(matchIdx, 1);
     const room = createRoom('pvp');
-    room.setGameOptions({ salvo });
+    room.setGameOptions({ salvo, fog });
     const p1 = room.addPlayer(waiting.ws);
     const p2 = room.addPlayer(ws);
     room.setAvatar(p1.slot - 1, waiting.avatar);
     room.setAvatar(p2.slot - 1, avatar);
+    room.setAccountToken(p1.slot - 1, waiting.accountToken);
+    room.setAccountToken(p2.slot - 1, accountToken);
 
     const ready = { type: 'ROOM_READY', roomCode: room.code, gameOptions: room.gameOptions };
     waiting.ws.send(JSON.stringify({ ...ready, playerSlot: p1.slot, playerToken: p1.token }));
@@ -52,7 +57,7 @@ export function enqueueQuickMatch(ws, avatar, gameOptions = {}) {
     return { queued: false, room };
   }
 
-  quickMatchQueue.push({ ws, avatar, gameOptions: { salvo } });
+  quickMatchQueue.push({ ws, avatar, gameOptions: { salvo, fog }, accountToken });
   return { queued: true };
 }
 

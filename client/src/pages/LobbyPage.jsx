@@ -4,6 +4,8 @@ import { useGame } from '../context/GameContext.jsx';
 import AvatarPicker, { loadAvatar, saveAvatar } from '../components/AvatarPicker.jsx';
 import ThemePicker from '../components/ThemePicker.jsx';
 import InfoModal from '../components/InfoModal.jsx';
+import AccountModal from '../components/AccountModal.jsx';
+import { loadAccount, clearAccount } from '../services/account.js';
 
 export default function LobbyPage() {
   const { state, sendMsg, dispatch, reset } = useGame();
@@ -12,16 +14,17 @@ export default function LobbyPage() {
   const [spectateMode, setSpectateMode] = useState(false);
   const [avatar, setAvatar] = useState(loadAvatar);
   const [salvo, setSalvo] = useState(false);
+  const [fog, setFog] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [account, setAccount] = useState(loadAccount);
   const navigate = useNavigate();
 
   useEffect(() => {
     if ((state.screen === 'placement' || state.screen === 'waiting') && state.roomCode) {
       navigate(`/game/${state.roomCode}`);
     }
-    if (state.screen === 'spectator') {
-      navigate(`/spectate`);
-    }
+    if (state.screen === 'spectator') navigate('/spectate');
   }, [state.screen, state.roomCode, navigate]);
 
   function updateAvatar(next) {
@@ -30,11 +33,11 @@ export default function LobbyPage() {
     dispatch({ type: 'SET_MY_AVATAR', avatar: next });
   }
 
-  const gameOptions = { salvo };
+  const gameOptions = { salvo, fog };
 
   function handleQuickMatch() {
     setWaiting(true);
-    sendMsg({ type: 'QUICK_MATCH', avatar, gameOptions });
+    sendMsg({ type: 'QUICK_MATCH', avatar, gameOptions, accountToken: account?.token ?? null });
   }
 
   function handleCancelQueue() {
@@ -65,6 +68,11 @@ export default function LobbyPage() {
     sendMsg({ type: 'PLAY_DAILY', avatar });
   }
 
+  function handleLogout() {
+    clearAccount();
+    setAccount(null);
+  }
+
   return (
     <div className="lobby">
       <div className="lobby-title-row">
@@ -73,6 +81,13 @@ export default function LobbyPage() {
       </div>
       <p className="subtitle">Battleship — play online with a friend or face the bot</p>
       {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
+      {showAccount && (
+        <AccountModal
+          onClose={() => setShowAccount(false)}
+          onAccount={data => setAccount(data)}
+        />
+      )}
+
       <div className="lobby-links">
         <Link to="/ranking" className="ranking-lobby-link">Hall of Fame</Link>
         <Link to="/stats" className="ranking-lobby-link">My Stats</Link>
@@ -85,20 +100,38 @@ export default function LobbyPage() {
         <p className="error-banner">Connection lost. Start a new game.</p>
       )}
 
+      {account ? (
+        <div className="account-bar">
+          <span className="account-name">{account.name}</span>
+          <span className="account-elo">ELO {account.elo}</span>
+          <button className="btn-ghost account-logout" onClick={handleLogout}>Log out</button>
+        </div>
+      ) : (
+        <button className="btn-ghost account-login-btn" onClick={() => setShowAccount(true)}>
+          Log in / Register
+        </button>
+      )}
+
       <AvatarPicker avatar={avatar} onChange={updateAvatar} />
       <ThemePicker />
 
       {waiting ? (
         <div className="panel">
-          <p>Waiting for an opponent...</p>
+          <p>Waiting for an opponent{salvo || fog ? ` (${[salvo && 'Salvo', fog && 'Fog'].filter(Boolean).join(' + ')})` : ''}...</p>
           <button onClick={handleCancelQueue} className="btn-secondary">Cancel</button>
         </div>
       ) : (
         <div className="lobby-options">
-          <label className="salvo-toggle">
-            <input type="checkbox" checked={salvo} onChange={e => setSalvo(e.target.checked)} />
-            <span>Salvo mode — fire one shot per surviving ship each turn</span>
-          </label>
+          <div className="mode-toggles">
+            <label className="salvo-toggle">
+              <input type="checkbox" checked={salvo} onChange={e => setSalvo(e.target.checked)} />
+              <span>Salvo mode — fire one shot per surviving ship each turn</span>
+            </label>
+            <label className="salvo-toggle">
+              <input type="checkbox" checked={fog} onChange={e => setFog(e.target.checked)} />
+              <span>Fog of war — your fleet board is hidden during play</span>
+            </label>
+          </div>
 
           <button onClick={handleQuickMatch} className="btn-primary">Quick Match</button>
           <button onClick={handleCreateRoom} className="btn-primary">Create Private Room</button>

@@ -79,6 +79,7 @@ export default function GameBoard() {
   const myIndex = state.playerSlot - 1;
   const oppIndex = myIndex === 0 ? 1 : 0;
   const salvo = state.gameOptions?.salvo;
+  const fog = state.gameOptions?.fog;
 
   const myBoard = state.myPlacements?.length
     ? buildBoardFromPlacements(state.myPlacements)
@@ -235,7 +236,9 @@ export default function GameBoard() {
             <LabeledGrid gridRef={gridRef} gridStyle={gridStyle}>
               {Array.from({ length: GRID_SIZE }, (_, r) =>
                 Array.from({ length: GRID_SIZE }, (_, c) => {
-                  const s = getCellState(myBoard, r, c, fleetAnimating);
+                  const sRaw = getCellState(myBoard, r, c, fleetAnimating);
+                  // In fog mode hide ship positions — only show hits/misses
+                  const s = fog && sRaw === 'ship' ? 'empty' : sRaw;
                   const isLastOpp = lastOppShot && lastOppShot[0] === r && lastOppShot[1] === c;
                   return (
                     <motion.div key={`my-${r}-${c}`}
