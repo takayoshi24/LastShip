@@ -68,8 +68,17 @@ function reducer(state, action) {
         messages: [],
         gameMode: action.gameMode ?? 'pvp',
         botDifficulty: action.botDifficulty ?? null,
+        // Reset all per-game state so stale data from a previous game
+        // doesn't show until the server sends fresh placements/avatars.
+        myPlacements: [],
+        sunkShips: [[], []],
         shipHits: initialState.shipHits,
         replayData: null,
+        lastShotResult: null,
+        currentTurn: null,
+        winner: null,
+        opponentAvatar: null,
+        opponentDisconnected: false,
         myShotsFired: 0,
         myShotsHit: 0,
         shotsReceived: 0,
