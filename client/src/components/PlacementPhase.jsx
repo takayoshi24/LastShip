@@ -3,6 +3,7 @@ import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerS
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { cellsFor } from '../utils/grid.js';
+import LabeledGrid from './LabeledGrid.jsx';
 
 const PLACEMENT_SECS = 60;
 
@@ -180,7 +181,7 @@ export default function PlacementPhase() {
           </div>
 
           <div className="grid-wrapper">
-            <div className="grid" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
+            <LabeledGrid gridStyle={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
               {Array.from({ length: GRID_SIZE }, (_, r) =>
                 Array.from({ length: GRID_SIZE }, (_, c) => {
                   const key = `${r},${c}`;
@@ -197,7 +198,7 @@ export default function PlacementPhase() {
                   );
                 })
               )}
-            </div>
+            </LabeledGrid>
           </div>
         </div>
       </DndContext>

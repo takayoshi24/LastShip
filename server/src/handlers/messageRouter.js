@@ -34,6 +34,7 @@ export function handleMessage(ws, rawData, wsToRoom) {
     case 'CREATE_ROOM': {
       const avatar = sanitizeAvatar(msg.avatar);
       const room = createRoom('pvp');
+      room.setGameOptions(msg.gameOptions);
       const { slot, token } = room.addPlayer(ws);
       room.setAvatar(slot - 1, avatar);
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
@@ -52,7 +53,7 @@ export function handleMessage(ws, rawData, wsToRoom) {
       room.setAvatar(slot - 1, avatar);
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
 
-      const ready = { type: 'ROOM_READY', roomCode: room.code };
+      const ready = { type: 'ROOM_READY', roomCode: room.code, gameOptions: room.gameOptions };
       const p1 = room.players[0];
       send(p1.ws, { ...ready, playerSlot: 1, playerToken: p1.token });
       send(ws, { ...ready, playerSlot: slot, playerToken: token });
@@ -101,7 +102,8 @@ export function handleMessage(ws, rawData, wsToRoom) {
       room.setAvatar(slot - 1, sanitizeAvatar(msg.avatar));
       room.addBot();
       wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
-      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token, gameMode: 'bot', botDifficulty: difficulty });
+      room.setGameOptions(msg.gameOptions);
+      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token, gameMode: 'bot', botDifficulty: difficulty, gameOptions: room.gameOptions });
       room.startPlacement();
       break;
     }
@@ -175,6 +177,15 @@ export function handleMessage(ws, rawData, wsToRoom) {
       const VALID = ['😂', '💀', '🔥', '👍', '😤', '🎯', '😱', '🤡'];
       if (!VALID.includes(msg.emoji)) return;
       room.broadcast({ type: 'EMOJI', emoji: msg.emoji, senderSlot: context.slotIndex + 1 });
+      break;
+    }
+
+    case 'REMATCH': {
+      const context = wsToRoom.get(ws);
+      if (!context?.roomCode) return;
+      const room = getRoom(context.roomCode);
+      if (!room || room.state !== 'finished') return;
+      room.voteRematch(context.slotIndex);
       break;
     }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
 import AvatarPicker, { loadAvatar, saveAvatar } from '../components/AvatarPicker.jsx';
+import ThemePicker from '../components/ThemePicker.jsx';
 
 export default function LobbyPage() {
   const { state, sendMsg, dispatch, reset } = useGame();
@@ -9,6 +10,7 @@ export default function LobbyPage() {
   const [roomInput, setRoomInput] = useState('');
   const [spectateMode, setSpectateMode] = useState(false);
   const [avatar, setAvatar] = useState(loadAvatar);
+  const [salvo, setSalvo] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +28,8 @@ export default function LobbyPage() {
     dispatch({ type: 'SET_MY_AVATAR', avatar: next });
   }
 
+  const gameOptions = { salvo };
+
   function handleQuickMatch() {
     setWaiting(true);
     sendMsg({ type: 'QUICK_MATCH', avatar });
@@ -37,7 +41,7 @@ export default function LobbyPage() {
   }
 
   function handleCreateRoom() {
-    sendMsg({ type: 'CREATE_ROOM', avatar });
+    sendMsg({ type: 'CREATE_ROOM', avatar, gameOptions });
   }
 
   function handleJoinRoom(e) {
@@ -52,7 +56,7 @@ export default function LobbyPage() {
   }
 
   function handlePlayBot(difficulty) {
-    sendMsg({ type: 'PLAY_BOT', difficulty, avatar });
+    sendMsg({ type: 'PLAY_BOT', difficulty, avatar, gameOptions });
   }
 
   function handleDailyChallenge() {
@@ -76,6 +80,7 @@ export default function LobbyPage() {
       )}
 
       <AvatarPicker avatar={avatar} onChange={updateAvatar} />
+      <ThemePicker />
 
       {waiting ? (
         <div className="panel">
@@ -84,6 +89,11 @@ export default function LobbyPage() {
         </div>
       ) : (
         <div className="lobby-options">
+          <label className="salvo-toggle">
+            <input type="checkbox" checked={salvo} onChange={e => setSalvo(e.target.checked)} />
+            <span>Salvo mode — fire one shot per surviving ship each turn</span>
+          </label>
+
           <button onClick={handleQuickMatch} className="btn-primary">Quick Match</button>
           <button onClick={handleCreateRoom} className="btn-primary">Create Private Room</button>
 
@@ -115,11 +125,8 @@ export default function LobbyPage() {
                 {spectateMode ? 'Watch' : 'Join'}
               </button>
               <label className="spectate-toggle">
-                <input
-                  type="checkbox"
-                  checked={spectateMode}
-                  onChange={e => setSpectateMode(e.target.checked)}
-                />
+                <input type="checkbox" checked={spectateMode}
+                  onChange={e => setSpectateMode(e.target.checked)} />
                 Spectate
               </label>
             </div>

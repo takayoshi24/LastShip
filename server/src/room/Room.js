@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createBoard, applyPlacements, randomPlacement, processShot, checkWin } from '../core/gameLogic.js';
-import { FLEET_CONFIG } from '../config/fleet.js';
+import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { getNextShot } from '../core/botAI.js';
 import { createRankingToken } from '../rankings/tokens.js';
 import { mulberry32, dailySeed, todayString } from '../core/seededRandom.js';
@@ -15,9 +15,9 @@ const RECONNECT_TIMEOUT_MS = 30_000;
 export class Room {
   constructor(code, type = 'pvp', botDifficulty = 'medium') {
     this.code = code;
-    this.type = type; // 'pvp' | 'bot' | 'daily'
+    this.type = type;
     this.botDifficulty = botDifficulty;
-    this.state = 'waiting'; // waiting | placement | active | finished
+    this.state = 'waiting';
     this.players = [null, null];
     this.boards = [createBoard(), createBoard()];
     this.placements = [[], []];
@@ -32,10 +32,17 @@ export class Room {
     this.shotLog = [];
     this.spectators = [];
     this.avatars = [null, null];
+    this.gameOptions = { salvo: false };
+    this.shotsRemainingThisTurn = 0;
+    this.rematchVotes = [false, false];
   }
 
   setAvatar(slotIndex, avatar) {
     this.avatars[slotIndex] = avatar ?? null;
+  }
+
+  setGameOptions(options = {}) {
+    this.gameOptions = { salvo: !!options.salvo };
   }
 
   addSpectator(ws) {
@@ -129,11 +136,21 @@ export class Room {
     this.gameStartTime = Date.now();
     const isImpossible = (this.type === 'bot' || this.type === 'daily') && this.botDifficulty === 'impossible';
     this.currentTurn = isImpossible ? 0 : (Math.random() < 0.5 ? 0 : 1);
+
+    if (this.gameOptions.salvo) {
+      this.shotsRemainingThisTurn = FLEET_CONFIG.length;
+    }
+
     const botAvatar = (this.type === 'bot' || this.type === 'daily')
       ? { color: '#64748b', icon: '🤖' } : null;
     if (botAvatar) this.avatars[1] = botAvatar;
 
-    this.broadcast({ type: 'GAME_START', firstPlayerSlot: this.currentTurn + 1 });
+    this.broadcast({
+      type: 'GAME_START',
+      firstPlayerSlot: this.currentTurn + 1,
+      gameOptions: this.gameOptions,
+      shotsRemaining: this.gameOptions.salvo ? this.shotsRemainingThisTurn : null,
+    });
     for (let i = 0; i < 2; i++) {
       if (!this.players[i]?.isBot) {
         this.send(i, { type: 'YOUR_PLACEMENTS', placements: this.placements[i] });
@@ -153,18 +170,21 @@ export class Room {
 
   _onTurnTimeout() {
     if (this.state !== 'active') return;
-    const targetIndex = this.currentTurn === 0 ? 1 : 0;
-    const board = this.boards[targetIndex];
-    const available = [];
-    for (let r = 0; r < board.length; r++) {
-      for (let c = 0; c < board[r].length; c++) {
-        const s = board[r][c].state;
-        if (s === 'empty' || s === 'ship') available.push([r, c]);
+    const shooter = this.currentTurn;
+    const targetIndex = 1 - shooter;
+    const shots = this.gameOptions.salvo ? this.shotsRemainingThisTurn : 1;
+
+    for (let i = 0; i < shots && this.state === 'active' && this.currentTurn === shooter; i++) {
+      const available = [];
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const s = this.boards[targetIndex][r][c].state;
+          if (s === 'empty' || s === 'ship') available.push([r, c]);
+        }
       }
-    }
-    if (available.length > 0) {
+      if (available.length === 0) break;
       const coord = available[Math.floor(Math.random() * available.length)];
-      this.fireShot(this.currentTurn, coord);
+      this.fireShot(shooter, coord);
     }
   }
 
@@ -177,7 +197,6 @@ export class Room {
     const hitShipName = this.boards[targetIndex][r][c].shipName;
 
     const result = processShot(this.boards[targetIndex], this.placements[targetIndex], coordinate);
-
     if (result.error) return result;
 
     this.boards[targetIndex] = result.board;
@@ -194,35 +213,67 @@ export class Room {
       sunkCells: result.sunkShip?.cells ?? null,
     });
 
+    const gameOver = checkWin(this.boards[targetIndex], this.placements[targetIndex]);
+
+    // Determine next turn (server-authoritative, sent to client)
+    let nextTurn = null;
+    let nextShotsRemaining = null;
+
+    if (!gameOver) {
+      if (this.gameOptions.salvo) {
+        this.shotsRemainingThisTurn--;
+        if (this.shotsRemainingThisTurn <= 0) {
+          this.currentTurn = targetIndex;
+          this.shotsRemainingThisTurn = FLEET_CONFIG.length - this.sunkShips[targetIndex].length;
+        }
+        nextTurn = this.currentTurn + 1;
+        nextShotsRemaining = this.shotsRemainingThisTurn;
+      } else {
+        this.currentTurn = targetIndex;
+        nextTurn = this.currentTurn + 1;
+      }
+    }
+
     const payload = {
       type: 'SHOT_RESULT',
       coordinate,
       result: result.result,
       shooterSlot: slotIndex + 1,
       shipHits: this.shipHits,
+      nextTurn,
+      shotsRemaining: nextShotsRemaining,
     };
     if (result.sunkShip) payload.sunkShip = result.sunkShip;
     this.broadcast(payload);
 
-    if (checkWin(this.boards[targetIndex], this.placements[targetIndex])) {
+    if (gameOver) {
       this._endGame(slotIndex);
       return { ok: true };
     }
 
-    this.currentTurn = targetIndex;
-    this._startTurnTimer();
+    // Restart timer only when turn switches
+    const turnSwitched = this.gameOptions.salvo
+      ? this.shotsRemainingThisTurn === FLEET_CONFIG.length - this.sunkShips[this.currentTurn].length && this.currentTurn === targetIndex
+      : true;
 
-    if (this.players[this.currentTurn]?.isBot) this._scheduleBotShot();
+    if (!this.gameOptions.salvo || this.currentTurn !== slotIndex) {
+      this._startTurnTimer();
+      if (this.players[this.currentTurn]?.isBot) this._scheduleBotShot();
+    } else if (this.players[this.currentTurn]?.isBot) {
+      // Bot still has salvo shots
+      this._scheduleBotShot();
+    }
 
     return { ok: true };
   }
 
   _scheduleBotShot() {
-    const delay = 1000 + Math.random() * 500;
+    const delay = this.gameOptions.salvo ? 600 + Math.random() * 300 : 1000 + Math.random() * 500;
     setTimeout(() => {
       if (this.state !== 'active') return;
+      if (!this.players[this.currentTurn]?.isBot) return;
       const target = getNextShot(this.boards[0], this.sunkShips[0], this.botDifficulty);
-      this.fireShot(1, target);
+      this.fireShot(this.currentTurn, target);
     }, delay);
   }
 
@@ -246,6 +297,57 @@ export class Room {
     } else {
       this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1, ...replayPayload });
     }
+  }
+
+  voteRematch(slotIndex) {
+    if (this.state !== 'finished') return;
+    this.rematchVotes[slotIndex] = true;
+
+    if (this.type !== 'pvp') {
+      // Bot/daily: auto-approve for the bot side
+      this.rematchVotes[1 - slotIndex] = true;
+    } else {
+      const oppIndex = 1 - slotIndex;
+      if (!this.rematchVotes[oppIndex]) {
+        this.send(oppIndex, { type: 'REMATCH_OFFERED' });
+      }
+    }
+
+    if (this.rematchVotes[0] && this.rematchVotes[1]) {
+      this._startRematch();
+    }
+  }
+
+  _startRematch() {
+    clearTimeout(this._turnTimer);
+    clearTimeout(this._placementTimer);
+
+    this.boards = [createBoard(), createBoard()];
+    this.placements = [[], []];
+    this.currentTurn = null;
+    this.sunkShips = [[], []];
+    this.shipHits = [emptyHits(), emptyHits()];
+    this.shotLog = [];
+    this.rematchVotes = [false, false];
+    this._placementReady = [false, false];
+    this.gameStartTime = null;
+    this.shotsRemainingThisTurn = 0;
+
+    for (let i = 0; i < 2; i++) {
+      if (!this.players[i]?.isBot) {
+        this.send(i, {
+          type: 'ROOM_READY',
+          roomCode: this.code,
+          playerSlot: i + 1,
+          playerToken: this.players[i].token,
+          gameMode: this.type === 'pvp' ? 'pvp' : this.type === 'daily' ? 'daily' : 'bot',
+          botDifficulty: this.botDifficulty ?? null,
+          gameOptions: this.gameOptions,
+        });
+      }
+    }
+
+    this.startPlacement();
   }
 
   disconnect(slotIndex) {
@@ -289,6 +391,8 @@ export class Room {
         sunkShips: this.sunkShips,
         roomState: this.state,
         playerSlot: slotIndex + 1,
+        gameOptions: this.gameOptions,
+        shotsRemaining: this.gameOptions.salvo ? this.shotsRemainingThisTurn : null,
       },
     });
   }

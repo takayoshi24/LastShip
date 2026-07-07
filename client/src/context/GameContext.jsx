@@ -41,6 +41,9 @@ const initialState = {
   myShotsHit: 0,
   shotsReceived: 0,
   shotsReceivedHit: 0,
+  gameOptions: { salvo: false },
+  shotsRemainingThisTurn: 0,
+  rematchOffered: false,
 };
 
 function statsMode(gameMode, botDifficulty) {
@@ -68,6 +71,7 @@ function reducer(state, action) {
         messages: [],
         gameMode: action.gameMode ?? 'pvp',
         botDifficulty: action.botDifficulty ?? null,
+        gameOptions: action.gameOptions ?? { salvo: false },
         // Reset all per-game state so stale data from a previous game
         // doesn't show until the server sends fresh placements/avatars.
         myPlacements: [],
@@ -79,6 +83,8 @@ function reducer(state, action) {
         winner: null,
         opponentAvatar: null,
         opponentDisconnected: false,
+        rematchOffered: false,
+        shotsRemainingThisTurn: 0,
         myShotsFired: 0,
         myShotsHit: 0,
         shotsReceived: 0,
@@ -92,7 +98,14 @@ function reducer(state, action) {
       return { ...state, placementError: action.reason };
 
     case 'GAME_START':
-      return { ...state, screen: 'game', currentTurn: action.firstPlayerSlot, lastShotResult: null };
+      return {
+        ...state,
+        screen: 'game',
+        currentTurn: action.firstPlayerSlot,
+        lastShotResult: null,
+        gameOptions: action.gameOptions ?? state.gameOptions,
+        shotsRemainingThisTurn: action.shotsRemaining ?? 0,
+      };
 
     case 'OPPONENT_INFO':
       return { ...state, opponentAvatar: action.avatar };
@@ -103,6 +116,9 @@ function reducer(state, action) {
         ...state,
         lastShotResult: action,
         shipHits: action.shipHits ?? state.shipHits,
+        // Server is authoritative for turn — removes need for client-side turn flip
+        currentTurn: action.nextTurn ?? state.currentTurn,
+        shotsRemainingThisTurn: action.shotsRemaining ?? state.shotsRemainingThisTurn,
         myShotsFired:     isMyShot ? state.myShotsFired + 1     : state.myShotsFired,
         myShotsHit:       isMyShot && action.result === 'hit' ? state.myShotsHit + 1 : state.myShotsHit,
         shotsReceived:    !isMyShot ? state.shotsReceived + 1   : state.shotsReceived,
@@ -159,6 +175,9 @@ function reducer(state, action) {
     case 'CLEAR_EMOJI':
       return { ...state, boardEmoji: null };
 
+    case 'REMATCH_OFFERED':
+      return { ...state, rematchOffered: true };
+
     case 'OPPONENT_DISCONNECTED':
       return { ...state, opponentDisconnected: true };
 
@@ -176,6 +195,8 @@ function reducer(state, action) {
         sunkShips: gs.sunkShips,
         currentTurn: gs.currentTurn,
         playerSlot: gs.playerSlot ?? state.playerSlot,
+        gameOptions: gs.gameOptions ?? state.gameOptions,
+        shotsRemainingThisTurn: gs.shotsRemaining ?? 0,
         reconnecting: false,
         reconnectFailed: false,
         turnTimerTick: state.turnTimerTick + 1,

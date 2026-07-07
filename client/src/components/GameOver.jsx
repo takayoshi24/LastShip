@@ -1,19 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
 import ReplayViewer from './ReplayViewer.jsx';
 
 export default function GameOver() {
-  const { state, reset } = useGame();
+  const { state, reset, sendMsg } = useGame();
   const navigate = useNavigate();
   const won = state.winner === state.playerSlot;
   const [rankName, setRankName] = useState('');
   const [rankStatus, setRankStatus] = useState('idle');
   const [showReplay, setShowReplay] = useState(false);
+  const [rematchState, setRematchState] = useState('idle'); // idle | waiting | offered
+
+  useEffect(() => {
+    if (state.rematchOffered) setRematchState('offered');
+  }, [state.rematchOffered]);
 
   function goLobby() {
     reset();
     navigate('/');
+  }
+
+  function handleRematch() {
+    sendMsg({ type: 'REMATCH' });
+    setRematchState('waiting');
   }
 
   async function handleRankSubmit(e) {
@@ -33,6 +43,7 @@ export default function GameOver() {
   }
 
   const isDaily = !!state.rankingDay;
+  const isPvP = state.gameMode === 'pvp';
 
   return (
     <div className="gameover-overlay">
@@ -53,14 +64,8 @@ export default function GameOver() {
               </p>
             ) : (
               <form onSubmit={handleRankSubmit} className="ranking-form">
-                <input
-                  value={rankName}
-                  onChange={e => setRankName(e.target.value)}
-                  placeholder="Your name"
-                  maxLength={20}
-                  disabled={rankStatus === 'submitting'}
-                  autoFocus
-                />
+                <input value={rankName} onChange={e => setRankName(e.target.value)}
+                  placeholder="Your name" maxLength={20} disabled={rankStatus === 'submitting'} autoFocus />
                 <button type="submit" className="btn-primary"
                   disabled={rankStatus === 'submitting' || !rankName.trim()}>
                   {rankStatus === 'submitting' ? 'Saving...' : 'Submit'}
@@ -75,7 +80,24 @@ export default function GameOver() {
           {state.replayData && (
             <button onClick={() => setShowReplay(true)} className="btn-secondary">Watch Replay</button>
           )}
-          <button onClick={goLobby} className="btn-primary">Play Again</button>
+
+          {rematchState === 'idle' && (
+            <button onClick={handleRematch} className="btn-rematch">
+              {isPvP ? 'Rematch' : 'Play Again'}
+            </button>
+          )}
+          {rematchState === 'waiting' && (
+            <button className="btn-rematch waiting" disabled>
+              Waiting for opponent…
+            </button>
+          )}
+          {rematchState === 'offered' && (
+            <button onClick={handleRematch} className="btn-rematch offered">
+              Accept Rematch!
+            </button>
+          )}
+
+          <button onClick={goLobby} className="btn-primary">Lobby</button>
         </div>
       </div>
 

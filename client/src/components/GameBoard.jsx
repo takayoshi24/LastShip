@@ -9,6 +9,7 @@ import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
 import ShipHealthBar from './ShipHealthBar.jsx';
 import ChatBox from './ChatBox.jsx';
+import LabeledGrid from './LabeledGrid.jsx';
 import { triggerExplosion } from '../services/explosion.js';
 import { cellsFor } from '../utils/grid.js';
 
@@ -18,6 +19,7 @@ function buildBoardFromPlacements(placements) {
   );
   for (const p of placements) {
     const cfg = FLEET_CONFIG.find(s => s.name === p.shipName);
+    if (!cfg) continue;
     for (const [r, c] of cellsFor(p.origin, p.orientation, cfg.size)) {
       board[r][c] = { state: 'ship', shipName: p.shipName };
     }
@@ -26,16 +28,8 @@ function buildBoardFromPlacements(placements) {
 }
 
 const sonarAnim = {
-  animate: {
-    scale:   [0, 1.2, 0],
-    opacity: [1, 0,   0],
-  },
-  transition: {
-    duration: 2.2,
-    repeat: Infinity,
-    ease: 'easeOut',
-    times: [0, 0.6, 1],
-  },
+  animate: { scale: [0, 1.2, 0], opacity: [1, 0, 0] },
+  transition: { duration: 2.2, repeat: Infinity, ease: 'easeOut', times: [0, 0.6, 1] },
 };
 
 const fireShipAnim = {
@@ -50,7 +44,7 @@ const fireShipAnim = {
 
 const cellVariants = {
   idle: { scale: 1, backgroundColor: 'var(--cell-empty)' },
-  hit: { scale: [1, 1.3, 1], backgroundColor: 'var(--cell-hit)', transition: { duration: 0.4 } },
+  hit:  { scale: [1, 1.3, 1], backgroundColor: 'var(--cell-hit)',  transition: { duration: 0.4 } },
   miss: { scale: [1, 0.85, 1], backgroundColor: 'var(--cell-miss)', transition: { duration: 0.3 } },
   sunk: { scale: 1, backgroundColor: 'var(--cell-sunk)', transition: { duration: 0.5 } },
   ship: { scale: 1, backgroundColor: 'var(--cell-ship)' },
@@ -68,6 +62,14 @@ export default function GameBoard() {
   const [volume, setVolume] = useState(() => parseFloat(localStorage.getItem('lastship_volume') ?? '0.7'));
   const explosionAudioRef = useRef(new Audio('/audio/Explosion_Sound_Effect.mp3'));
 
+  // Keyboard firing
+  const [cursor, setCursor] = useState({ r: 0, c: 0 });
+  const [kbMode, setKbMode] = useState(false);
+
+  // Last-shot indicators
+  const [lastMyShot, setLastMyShot] = useState(null);
+  const [lastOppShot, setLastOppShot] = useState(null);
+
   useEffect(() => {
     explosionAudioRef.current.volume = volume;
     localStorage.setItem('lastship_volume', String(volume));
@@ -76,6 +78,7 @@ export default function GameBoard() {
   const isMyTurn = state.currentTurn === state.playerSlot;
   const myIndex = state.playerSlot - 1;
   const oppIndex = myIndex === 0 ? 1 : 0;
+  const salvo = state.gameOptions?.salvo;
 
   const myBoard = state.myPlacements?.length
     ? buildBoardFromPlacements(state.myPlacements)
@@ -105,6 +108,7 @@ export default function GameBoard() {
     }
 
     if (isMyShot) {
+      setLastMyShot(coordinate);
       setAttackAnimating(prev => ({ ...prev, [key]: cellResult }));
       if (canvasRef.current && attackGridRef.current) {
         const gridRect = attackGridRef.current.getBoundingClientRect();
@@ -126,22 +130,44 @@ export default function GameBoard() {
       }
       if (sunkShip) {
         dispatch({ type: 'ADD_SUNK', targetIndex: oppIndex, shipName: sunkShip.name });
-        for (const [cr, cc] of sunkShip.cells) {
+        for (const [cr, cc] of sunkShip.cells)
           setAttackAnimating(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
-        }
       }
     } else {
+      setLastOppShot(coordinate);
       setFleetAnimating(prev => ({ ...prev, [key]: cellResult }));
       if (sunkShip) {
         dispatch({ type: 'ADD_SUNK', targetIndex: myIndex, shipName: sunkShip.name });
-        for (const [cr, cc] of sunkShip.cells) {
+        for (const [cr, cc] of sunkShip.cells)
           setFleetAnimating(prev => ({ ...prev, [`${cr},${cc}`]: 'sunk' }));
-        }
       }
     }
-
-    dispatch({ type: 'UPDATE_TURN', turn: state.currentTurn === 1 ? 2 : 1 });
+    // Turn is now managed server-side via action.nextTurn in the reducer
   }, [state.lastShotResult]);
+
+  // Keyboard handler
+  useEffect(() => {
+    if (!isMyTurn) { setKbMode(false); return; }
+    const moves = { ArrowUp: [-1,0], ArrowDown: [1,0], ArrowLeft: [0,-1], ArrowRight: [0,1] };
+    function onKey(e) {
+      if (moves[e.key]) {
+        e.preventDefault();
+        setKbMode(true);
+        const [dr, dc] = moves[e.key];
+        setCursor(p => ({
+          r: Math.max(0, Math.min(GRID_SIZE - 1, p.r + dr)),
+          c: Math.max(0, Math.min(GRID_SIZE - 1, p.c + dc)),
+        }));
+      } else if (e.key === 'Enter' && kbMode) {
+        const s = getCellState(attackBoard, cursor.r, cursor.c, attackAnimating);
+        if (s === 'empty') handleFire(cursor.r, cursor.c);
+      } else if (e.key === 'Escape') {
+        setKbMode(false);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMyTurn, kbMode, cursor, attackBoard, attackAnimating]);
 
   const handleForfeitClick = useCallback(() => {
     if (!confirming) {
@@ -164,6 +190,8 @@ export default function GameBoard() {
     return board?.[r]?.[c]?.state ?? 'empty';
   }
 
+  const gridStyle = { gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` };
+
   return (
     <div className="game-board">
       <canvas ref={canvasRef} className="explosion-canvas" />
@@ -173,27 +201,23 @@ export default function GameBoard() {
           <span className="turn-avatar" style={{ background: state.myAvatar.color }}>{state.myAvatar.icon}</span>
         )}
         <span className={`turn-indicator ${isMyTurn ? 'my-turn' : 'opp-turn'}`}>
-          {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
+          {isMyTurn ? (salvo ? `Your salvo — ${state.shotsRemainingThisTurn} shot${state.shotsRemainingThisTurn !== 1 ? 's' : ''} left` : 'Your turn — fire!')
+                    : "Opponent's turn"}
         </span>
         {state.opponentAvatar && (
           <span className="turn-avatar" style={{ background: state.opponentAvatar.color }}>{state.opponentAvatar.icon}</span>
         )}
         <CountdownTimer seconds={30} key={state.turnTimerTick} onExpire={() => {}} />
+        {kbMode && <span className="kb-hint">↑↓←→ move · Enter fire · Esc exit</span>}
         <div className="volume-control">
           {volume === 0 ? <LuVolumeX /> : <LuVolume2 />}
-          <input
-            type="range"
-            min="0" max="1" step="0.05"
-            value={volume}
-            onChange={e => setVolume(parseFloat(e.target.value))}
-          />
+          <input type="range" min="0" max="1" step="0.05" value={volume}
+            onChange={e => setVolume(parseFloat(e.target.value))} />
         </div>
         <div className="forfeit-actions">
           {confirming && (
-            <button
-              className="btn-ghost"
-              onClick={() => { clearTimeout(confirmTimerRef.current); setConfirming(false); }}
-            >
+            <button className="btn-ghost"
+              onClick={() => { clearTimeout(confirmTimerRef.current); setConfirming(false); }}>
               Cancel
             </button>
           )}
@@ -206,105 +230,74 @@ export default function GameBoard() {
       <div className="boards-container">
         <div className="board-section">
           <h3>Your Fleet</h3>
-          <ShipHealthBar
-            label="Your ships"
-            hitsObj={state.shipHits[myIndex]}
-            sunkList={state.sunkShips[myIndex] ?? []}
-          />
+          <ShipHealthBar label="Your ships" hitsObj={state.shipHits[myIndex]} sunkList={state.sunkShips[myIndex] ?? []} />
           <div style={{ position: 'relative', display: 'inline-block' }}>
-          <div className="grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
-
-            {Array.from({ length: GRID_SIZE }, (_, r) =>
-              Array.from({ length: GRID_SIZE }, (_, c) => {
-                const s = getCellState(myBoard, r, c, fleetAnimating);
-                return (
-                  <motion.div
-                    key={`my-${r}-${c}`}
-                    className={`grid-cell ${s}`}
-                    variants={cellVariants}
-                    animate={s}
-                  >
-                    {s === 'empty' && <LuEqualApproximately className="sea-icon" />}
-                    {s === 'ship'  && <FaShip className="ship-cell-icon" />}
-                    {s === 'sunk' && <GiHarryPotterSkull className="skull-icon" />}
-                    {s === 'hit' && (
-                      <motion.div className="fire-ship-icon" {...fireShipAnim}>
-                        <SiFireship />
-                      </motion.div>
-                    )}
-                    {s === 'miss' && (
-                      <div className="sonar-wrap">
-                        <motion.div className="sonar-icon" {...sonarAnim}>
-                          <SiSonarqubeserver />
-                        </motion.div>
-                        <motion.div
-                          className="sonar-icon"
-                          initial={{ rotate: 90, scale: 0, opacity: 1 }}
-                          animate={sonarAnim.animate}
-                          transition={sonarAnim.transition}
-                        >
-                          <SiSonarqubeserver />
-                        </motion.div>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
-          <AnimatePresence>
-            {state.boardEmoji && (
-              <motion.div key={state.boardEmoji.id} className="board-emoji"
-                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
-                {state.boardEmoji.emoji}
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <LabeledGrid gridRef={gridRef} gridStyle={gridStyle}>
+              {Array.from({ length: GRID_SIZE }, (_, r) =>
+                Array.from({ length: GRID_SIZE }, (_, c) => {
+                  const s = getCellState(myBoard, r, c, fleetAnimating);
+                  const isLastOpp = lastOppShot && lastOppShot[0] === r && lastOppShot[1] === c;
+                  return (
+                    <motion.div key={`my-${r}-${c}`}
+                      className={`grid-cell ${s}${isLastOpp ? ' last-shot' : ''}`}
+                      variants={cellVariants} animate={s}>
+                      {s === 'empty' && <LuEqualApproximately className="sea-icon" />}
+                      {s === 'ship' && <FaShip className="ship-cell-icon" />}
+                      {s === 'sunk' && <GiHarryPotterSkull className="skull-icon" />}
+                      {s === 'hit' && <motion.div className="fire-ship-icon" {...fireShipAnim}><SiFireship /></motion.div>}
+                      {s === 'miss' && (
+                        <div className="sonar-wrap">
+                          <motion.div className="sonar-icon" {...sonarAnim}><SiSonarqubeserver /></motion.div>
+                          <motion.div className="sonar-icon"
+                            initial={{ rotate: 90, scale: 0, opacity: 1 }}
+                            animate={sonarAnim.animate} transition={sonarAnim.transition}>
+                            <SiSonarqubeserver />
+                          </motion.div>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })
+              )}
+            </LabeledGrid>
+            <AnimatePresence>
+              {state.boardEmoji && (
+                <motion.div key={state.boardEmoji.id} className="board-emoji"
+                  initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+                  {state.boardEmoji.emoji}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
         <div className="board-section">
           <h3>Your Attack</h3>
-          <ShipHealthBar
-            label="Enemy ships"
-            hitsObj={state.shipHits[oppIndex]}
-            sunkList={state.sunkShips[oppIndex] ?? []}
-          />
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-          <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} ref={attackGridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
+          <ShipHealthBar label="Enemy ships" hitsObj={state.shipHits[oppIndex]} sunkList={state.sunkShips[oppIndex] ?? []} />
+          <LabeledGrid gridRef={attackGridRef} gridClass={isMyTurn ? 'interactive' : 'locked'} gridStyle={gridStyle}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
                 const s = getCellState(attackBoard, r, c, attackAnimating);
                 const clickable = isMyTurn && s === 'empty';
+                const isCursor = kbMode && cursor.r === r && cursor.c === c;
+                const isLastMy = lastMyShot && lastMyShot[0] === r && lastMyShot[1] === c && s !== 'empty';
                 return (
-                  <motion.div
-                    key={`atk-${r}-${c}`}
-                    className={`grid-cell ${s} ${clickable ? 'clickable' : ''}`}
-                    variants={cellVariants}
-                    animate={s}
+                  <motion.div key={`atk-${r}-${c}`}
+                    className={`grid-cell ${s}${clickable ? ' clickable' : ''}${isCursor ? ' kb-cursor' : ''}${isLastMy ? ' last-shot' : ''}`}
+                    variants={cellVariants} animate={s}
                     onTap={clickable ? () => handleFire(r, c) : undefined}
                     whileHover={clickable ? { scale: 1.1 } : {}}
-                    whileTap={clickable ? { scale: 0.85 } : {}}
-                  >
+                    whileTap={clickable ? { scale: 0.85 } : {}}>
                     {s === 'empty' && <LuEqualApproximately className="sea-icon" />}
                     {s === 'sunk' && <GiHarryPotterSkull className="skull-icon" />}
-                    {s === 'hit' && (
-                      <motion.div className="fire-ship-icon" {...fireShipAnim}>
-                        <SiFireship />
-                      </motion.div>
-                    )}
+                    {s === 'hit' && <motion.div className="fire-ship-icon" {...fireShipAnim}><SiFireship /></motion.div>}
                     {s === 'miss' && (
                       <div className="sonar-wrap">
-                        <motion.div className="sonar-icon" {...sonarAnim}>
-                          <SiSonarqubeserver />
-                        </motion.div>
-                        <motion.div
-                          className="sonar-icon"
+                        <motion.div className="sonar-icon" {...sonarAnim}><SiSonarqubeserver /></motion.div>
+                        <motion.div className="sonar-icon"
                           initial={{ rotate: 90, scale: 0, opacity: 1 }}
-                          animate={sonarAnim.animate}
-                          transition={sonarAnim.transition}
-                        >
+                          animate={sonarAnim.animate} transition={sonarAnim.transition}>
                           <SiSonarqubeserver />
                         </motion.div>
                       </div>
@@ -313,10 +306,7 @@ export default function GameBoard() {
                 );
               })
             )}
-          </div>
-          <AnimatePresence>
-          </AnimatePresence>
-          </div>
+          </LabeledGrid>
         </div>
       </div>
 

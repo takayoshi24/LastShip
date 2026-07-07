@@ -1058,3 +1058,194 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .spec-cell.hit   { background: #f97316; }
 .spec-cell.miss  { background: #334155; }
 .spec-cell.sunk  { background: #ef4444; }
+
+/* ═══════════════════════════════════════════════════════════
+   THEMES
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="ocean"] {
+  --bg: #021a22;
+  --surface: #052e3d;
+  --surface-alt: #073d52;
+  --border: #0a5570;
+  --accent: #00c9c9;
+  --accent-dark: #007a7a;
+  --danger: #ff5252;
+  --success: #69f0ae;
+  --text: #cce8f0;
+  --text-dim: #3d8fa1;
+  --cell-empty: #052e3d;
+  --cell-ship: #0a4a6e;
+  --cell-hit: #f59e0b;
+  --cell-miss: #0a3d52;
+  --cell-sunk: #b91c1c;
+  --cell-preview-valid: #86efac;
+  --cell-preview-invalid: #fca5a5;
+}
+
+[data-theme="retro"] {
+  --bg: #0a0a0a;
+  --surface: #0d1a0d;
+  --surface-alt: #112011;
+  --border: #1a3a1a;
+  --accent: #00ff41;
+  --accent-dark: #006600;
+  --danger: #ff4444;
+  --success: #00ff41;
+  --text: #a0ffa0;
+  --text-dim: #3a7a3a;
+  --cell-empty: #0d1a0d;
+  --cell-ship: #003300;
+  --cell-hit: #ff8c00;
+  --cell-miss: #1a3a1a;
+  --cell-sunk: #cc0000;
+  --cell-preview-valid: #004400;
+  --cell-preview-invalid: #440000;
+}
+
+[data-theme="dusk"] {
+  --bg: #120027;
+  --surface: #1e0a3c;
+  --surface-alt: #2d1454;
+  --border: #3b1060;
+  --accent: #d946ef;
+  --accent-dark: #9333ea;
+  --danger: #f87171;
+  --success: #a78bfa;
+  --text: #f0d0ff;
+  --text-dim: #7a3a9a;
+  --cell-empty: #1e0a3c;
+  --cell-ship: #2d0a5c;
+  --cell-hit: #f87171;
+  --cell-miss: #3b1060;
+  --cell-sunk: #dc2626;
+  --cell-preview-valid: #4c1d95;
+  --cell-preview-invalid: #7f1d1d;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THEME PICKER
+   ═══════════════════════════════════════════════════════════ */
+.theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.theme-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.theme-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.theme-dot:hover { transform: scale(1.2); }
+.theme-dot.active { border-color: #fff; transform: scale(1.15); }
+
+/* ═══════════════════════════════════════════════════════════
+   GRID LABELS (LabeledGrid)
+   ═══════════════════════════════════════════════════════════ */
+.lg-wrap { display: inline-flex; flex-direction: column; }
+
+.lg-col-headers {
+  display: grid;
+  grid-template-columns: 18px repeat(10, var(--cell));
+  column-gap: 2px;
+  margin-bottom: 2px;
+  padding-left: 0;
+}
+.lg-corner { /* spacer only */ }
+.lg-col-lbl {
+  text-align: center;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.lg-body { display: flex; gap: 2px; }
+
+.lg-row-labels {
+  display: grid;
+  grid-template-rows: repeat(10, var(--cell));
+  row-gap: 2px;
+}
+.lg-row-lbl {
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  user-select: none;
+  padding-right: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD CURSOR & LAST-SHOT RING
+   ═══════════════════════════════════════════════════════════ */
+.grid-cell.kb-cursor {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  z-index: 2;
+  position: relative;
+}
+.grid-cell.last-shot {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 10px var(--accent);
+  z-index: 1;
+  position: relative;
+}
+.kb-hint {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  display: none;
+}
+@media (min-width: 900px) { .kb-hint { display: inline; } }
+
+/* ═══════════════════════════════════════════════════════════
+   SALVO TOGGLE
+   ═══════════════════════════════════════════════════════════ */
+.salvo-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.salvo-toggle input { cursor: pointer; accent-color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+.salvo-toggle span { line-height: 1.4; }
+
+/* ═══════════════════════════════════════════════════════════
+   REMATCH BUTTON
+   ═══════════════════════════════════════════════════════════ */
+.btn-rematch {
+  background: var(--accent-dark);
+  color: #fff;
+  border: 2px solid var(--accent);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-rematch:hover { background: var(--accent); color: #000; }
+.btn-rematch.waiting { opacity: 0.5; cursor: not-allowed; }
+.btn-rematch.offered {
+  background: var(--success);
+  border-color: var(--success);
+  color: #000;
+  animation: pulse-green 1s ease-in-out infinite;
+}
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(102,187,106,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(102,187,106,0); }
+}
