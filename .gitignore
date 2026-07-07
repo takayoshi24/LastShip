@@ -5,3 +5,7 @@ dist/
 *.stackdump
 server/data/
 data/
+
+# Playwright
+test-results/
+playwright-report/
