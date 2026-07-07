@@ -7,7 +7,6 @@ import { FaShip } from 'react-icons/fa';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
-import SunkShipsList from './SunkShipsList.jsx';
 import ShipHealthBar from './ShipHealthBar.jsx';
 import ChatBox from './ChatBox.jsx';
 import { triggerExplosion } from '../services/explosion.js';
@@ -315,7 +314,6 @@ export default function GameBoard() {
         </div>
       </div>
 
-      <SunkShipsList sunkShips={state.sunkShips} playerSlot={state.playerSlot} />
       {state.gameMode === 'pvp' && <ChatBox />}
     </div>
   );
