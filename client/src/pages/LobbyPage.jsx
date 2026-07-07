@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
 import AvatarPicker, { loadAvatar, saveAvatar } from '../components/AvatarPicker.jsx';
 import ThemePicker from '../components/ThemePicker.jsx';
+import InfoModal from '../components/InfoModal.jsx';
 
 export default function LobbyPage() {
   const { state, sendMsg, dispatch, reset } = useGame();
@@ -11,6 +12,7 @@ export default function LobbyPage() {
   const [spectateMode, setSpectateMode] = useState(false);
   const [avatar, setAvatar] = useState(loadAvatar);
   const [salvo, setSalvo] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,8 +67,12 @@ export default function LobbyPage() {
 
   return (
     <div className="lobby">
-      <h1>LastShip</h1>
+      <div className="lobby-title-row">
+        <h1>LastShip</h1>
+        <button className="info-btn" onClick={() => setShowInfo(true)} title="How to play">?</button>
+      </div>
       <p className="subtitle">Battleship — play online with a friend or face the bot</p>
+      {showInfo && <InfoModal onClose={() => setShowInfo(false)} />}
       <div className="lobby-links">
         <Link to="/ranking" className="ranking-lobby-link">Hall of Fame</Link>
         <Link to="/stats" className="ranking-lobby-link">My Stats</Link>
