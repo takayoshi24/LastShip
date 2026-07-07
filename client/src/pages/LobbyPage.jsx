@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext.jsx';
 
 export default function LobbyPage() {
@@ -41,6 +41,7 @@ export default function LobbyPage() {
     <div className="lobby">
       <h1>LastShip</h1>
       <p className="subtitle">Battleship — play online with a friend or face the bot</p>
+      <Link to="/ranking" className="ranking-lobby-link">Hall of Fame</Link>
       {state.onlineCount > 0 && (
         <p className="online-count">{state.onlineCount} online</p>
       )}

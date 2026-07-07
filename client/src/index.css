@@ -481,6 +481,96 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   text-align: center;
 }
 
+/* ─── Ranking lobby link ─────────────────────────────── */
+.ranking-lobby-link {
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 14px;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, color 0.15s;
+}
+.ranking-lobby-link:hover { background: var(--accent-dark); color: #fff; border-color: var(--accent-dark); }
+
+/* ─── GameOver ranking submit ────────────────────────── */
+.ranking-submit {
+  background: var(--surface-alt);
+  border: 1px solid #ffd700;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ranking-unlock {
+  color: #ffd700;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.ranking-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ranking-form input {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.ranking-success { color: var(--success); font-size: 0.95rem; }
+.ranking-link { color: var(--accent); text-decoration: underline; }
+
+/* ─── Ranking page ───────────────────────────────────── */
+.ranking-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.ranking-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.ranking-header h1 { font-size: 1.8rem; color: var(--accent); }
+.ranking-subtitle { color: var(--text-dim); font-size: 0.85rem; margin-top: 2px; }
+.ranking-loading, .ranking-empty { color: var(--text-dim); text-align: center; padding: 32px 0; }
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.ranking-table th {
+  text-align: left;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.ranking-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--surface-alt);
+}
+.ranking-table tbody tr:hover { background: var(--surface); }
+.rank-first td { color: #ffd700; font-weight: 700; }
+.rank-top td { color: var(--accent); }
+.rank-num { width: 48px; text-align: center; }
+.rank-shots { font-variant-numeric: tabular-nums; font-weight: 600; }
+.rank-date { color: var(--text-dim); font-size: 0.85rem; }
+
 /* ─── Responsive ─────────────────────────────────────── */
 
 /* Tablet / small desktop: stack boards vertically, rearrange ship panel */

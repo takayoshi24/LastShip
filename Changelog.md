@@ -3,6 +3,35 @@
 ---
 ## 2026-07-07 — 1 commit on master
 
+**Scope:** feat — Impossible bot ranking / hall of fame
+
+### feat: ranking system gated behind beating the Impossible bot
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-07
+
+Players who defeat the Impossible bot are issued a one-time server-side token included in the `GAME_OVER` WebSocket message. That token unlocks a name-entry form on the game-over screen; submitting it POSTs `{name, token}` to `POST /api/rankings`, where the server validates the token (UUID stored in memory with a 10-minute TTL, consumed on first use), records the entry with shot count and timestamp, and persists the sorted list to `server/data/rankings.json`. Shot count is tracked server-side in `Room.humanShotCount`, incremented each time the human fires a valid shot against the bot. The leaderboard is served at `GET /api/rankings` and displayed at a new `/ranking` route with medal icons (🥇🥈🥉) for the top three; it is accessible from a "Hall of Fame" link in the lobby.
+
+**Files changed:**
+- `server/src/rankings/storage.js` +28 (new) — `getRankings` / `addEntry` using `server/data/rankings.json`, sorted by shots, capped at 100 entries
+- `server/src/rankings/tokens.js` +16 (new) — `createRankingToken` / `consumeRankingToken` with UUID + expiry Map
+- `server/src/room/Room.js` +12 / -1 — `humanShotCount` field; incremented in `fireShot`; `_endGame` emits token to winner when impossible bot is beaten
+- `server/src/server.js` +43 — `readBody` helper; `GET /api/rankings` and `POST /api/rankings` routes before static-file fallback; CORS headers
+- `client/vite.config.js` +5 — proxy `/api` → `localhost:3000` for dev
+- `client/src/context/GameContext.jsx` +3 / -1 — `rankingToken: null` in initial state; populated from `GAME_OVER` action
+- `client/src/components/GameOver.jsx` +55 / -8 — gold-bordered ranking form shown when `rankingToken` present; async fetch POST; success link to `/ranking`
+- `client/src/pages/RankingPage.jsx` +52 (new) — leaderboard table with medal icons, loading/empty states, date formatting
+- `client/src/pages/LobbyPage.jsx` +3 / -1 — "Hall of Fame" link below the title
+- `client/src/App.jsx` +2 — `/ranking` route added
+- `client/src/index.css` +90 — styles for ranking lobby link, GameOver form, leaderboard table and row variants
+
+---
+
+**Summary:** This batch adds a persistent Impossible-bot hall of fame. The ranking is fully server-gated — a one-time cryptographic token proves the win is real, the shot count is measured server-side so it cannot be spoofed, and entries survive server restarts via a JSON file. Players who beat Impossible see a gold "enter the hall of fame" prompt on the game-over screen; everyone can browse the leaderboard from the lobby's "Hall of Fame" link. No entry is possible from PvP games or easier difficulty bots.
+
+---
+## 2026-07-07 — 1 commit on master
+
 **Scope:** Bug fix — ship dragging broken on Android during placement phase
 
 ### fix: enable ship drag on Android with TouchSensor and touch-action: none

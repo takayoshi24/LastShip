@@ -14,6 +14,7 @@ const initialState = {
   currentTurn: null,
   lastShotResult: null,
   winner: null,
+  rankingToken: null,
   opponentDisconnected: false,
   reconnecting: false,
   reconnectFailed: false,
@@ -47,7 +48,7 @@ function reducer(state, action) {
       return { ...state, lastShotResult: action };
 
     case 'GAME_OVER':
-      return { ...state, screen: 'gameover', winner: action.winner };
+      return { ...state, screen: 'gameover', winner: action.winner, rankingToken: action.rankingToken ?? null };
 
     case 'OPPONENT_DISCONNECTED':
       return { ...state, opponentDisconnected: true };

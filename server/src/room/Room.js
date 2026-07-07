@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createBoard, applyPlacements, randomPlacement, processShot, checkWin } from '../core/gameLogic.js';
 import { getNextShot } from '../core/botAI.js';
+import { createRankingToken } from '../rankings/tokens.js';
 
 const PLACEMENT_TIMEOUT_MS = 60_000;
 const TURN_TIMEOUT_MS = 5 * 60_000;
@@ -21,6 +22,7 @@ export class Room {
     this._turnTimer = null;
     this._reconnectTimers = [null, null];
     this._placementReady = [false, false];
+    this.humanShotCount = 0;
   }
 
   addPlayer(ws) {
@@ -118,6 +120,8 @@ export class Room {
 
     if (result.error) return result;
 
+    if (this.type === 'bot' && slotIndex === 0) this.humanShotCount++;
+
     this.boards[targetIndex] = result.board;
     if (result.sunkShip) this.sunkShips[targetIndex].push(result.sunkShip.name);
 
@@ -151,7 +155,13 @@ export class Room {
     this.state = 'finished';
     clearTimeout(this._turnTimer);
     clearTimeout(this._placementTimer);
-    this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1 });
+
+    if (this.type === 'bot' && this.botDifficulty === 'impossible' && winnerIndex === 0) {
+      const rankingToken = createRankingToken(this.humanShotCount);
+      this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken });
+    } else {
+      this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1 });
+    }
   }
 
   disconnect(slotIndex) {

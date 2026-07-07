@@ -4,6 +4,8 @@ import { extname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { handleMessage, handleDisconnect } from './handlers/messageRouter.js';
+import { getRankings, addEntry } from './rankings/storage.js';
+import { consumeRankingToken } from './rankings/tokens.js';
 
 const PORT = process.env.PORT ?? 3000;
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -20,8 +22,49 @@ const MIME = {
   '.woff': 'font/woff',
 };
 
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 const httpServer = createServer(async (req, res) => {
   const url = req.url.split('?')[0];
+
+  if (url === '/api/rankings') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+
+    if (req.method === 'GET') {
+      const rankings = getRankings();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(rankings));
+    }
+
+    if (req.method === 'POST') {
+      let data;
+      try { data = JSON.parse(await readBody(req)); } catch {
+        res.writeHead(400); return res.end('Bad request');
+      }
+      const { name, token } = data ?? {};
+      const trimmedName = typeof name === 'string' ? name.trim().slice(0, 20) : '';
+      if (!trimmedName || !token) {
+        res.writeHead(400); return res.end('Missing name or token');
+      }
+      const entry = consumeRankingToken(token);
+      if (!entry) { res.writeHead(403); return res.end('Invalid or expired token'); }
+      const rankings = addEntry(trimmedName, entry.shots);
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(rankings));
+    }
+
+    res.writeHead(405); return res.end();
+  }
+
   const filePath = join(DIST, url === '/' ? 'index.html' : url);
 
   try {
