@@ -4,8 +4,9 @@ import { extname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { handleMessage, handleDisconnect } from './handlers/messageRouter.js';
-import { getRankings, addEntry } from './rankings/storage.js';
+import { getRankings, addEntry, getDailyRankings, addDailyEntry } from './rankings/storage.js';
 import { consumeRankingToken } from './rankings/tokens.js';
+import { todayString } from './core/seededRandom.js';
 
 const PORT = process.env.PORT ?? 3000;
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -34,6 +35,18 @@ function readBody(req) {
 const httpServer = createServer(async (req, res) => {
   const url = req.url.split('?')[0];
 
+  if (url === '/api/rankings/daily') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    if (req.method === 'GET') {
+      const day = new URLSearchParams(req.url.split('?')[1] ?? '').get('day') ?? todayString();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(getDailyRankings(day)));
+    }
+    res.writeHead(405); return res.end();
+  }
+
   if (url === '/api/rankings') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -57,7 +70,9 @@ const httpServer = createServer(async (req, res) => {
       }
       const entry = consumeRankingToken(token);
       if (!entry) { res.writeHead(403); return res.end('Invalid or expired token'); }
-      const rankings = addEntry(trimmedName, entry.duration);
+      const rankings = entry.day
+        ? addDailyEntry(trimmedName, entry.duration, entry.day)
+        : addEntry(trimmedName, entry.duration);
       res.writeHead(201, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(rankings));
     }

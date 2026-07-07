@@ -2,18 +2,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { createBoard, applyPlacements, randomPlacement, processShot, checkWin } from '../core/gameLogic.js';
 import { getNextShot } from '../core/botAI.js';
 import { createRankingToken } from '../rankings/tokens.js';
+import { mulberry32, dailySeed, todayString } from '../core/seededRandom.js';
 
 const PLACEMENT_TIMEOUT_MS = 60_000;
-const TURN_TIMEOUT_MS = 5 * 60_000;
+const TURN_TIMEOUT_MS = 30_000;
+const TURN_TIMEOUT_SECS = 30;
 const RECONNECT_TIMEOUT_MS = 30_000;
 
 export class Room {
   constructor(code, type = 'pvp', botDifficulty = 'medium') {
     this.code = code;
-    this.type = type; // 'pvp' | 'bot'
-    this.botDifficulty = botDifficulty; // 'easy' | 'medium' | 'hard'
+    this.type = type; // 'pvp' | 'bot' | 'daily'
+    this.botDifficulty = botDifficulty;
     this.state = 'waiting'; // waiting | placement | active | finished
-    this.players = [null, null]; // index 0 = slot 1, index 1 = slot 2
+    this.players = [null, null];
     this.boards = [createBoard(), createBoard()];
     this.placements = [[], []];
     this.currentTurn = null;
@@ -54,12 +56,12 @@ export class Room {
 
   startPlacement() {
     this.state = 'placement';
-    if (this.type === 'bot') {
-      this.placements[1] = randomPlacement();
+    if (this.type === 'bot' || this.type === 'daily') {
+      const rand = this.type === 'daily' ? mulberry32(dailySeed()) : Math.random;
+      this.placements[1] = randomPlacement([], rand);
       this.boards[1] = applyPlacements(this.boards[1], this.placements[1]);
       this._placementReady[1] = true;
     }
-
     this._placementTimer = setTimeout(() => this._onPlacementTimeout(), PLACEMENT_TIMEOUT_MS);
   }
 
@@ -77,7 +79,7 @@ export class Room {
 
   _onPlacementTimeout() {
     for (let i = 0; i < 2; i++) {
-      if (this.type === 'bot' && i === 1) continue;
+      if ((this.type === 'bot' || this.type === 'daily') && i === 1) continue;
       if (this.placements[i].length === 0) {
         this.placements[i] = randomPlacement();
         this.boards[i] = applyPlacements(createBoard(), this.placements[i]);
@@ -89,9 +91,9 @@ export class Room {
   _startGame() {
     this.state = 'active';
     this.gameStartTime = Date.now();
-    this.currentTurn = (this.type === 'bot' && this.botDifficulty === 'impossible') ? 0 : (Math.random() < 0.5 ? 0 : 1);
+    const isImpossible = (this.type === 'bot' || this.type === 'daily') && this.botDifficulty === 'impossible';
+    this.currentTurn = isImpossible ? 0 : (Math.random() < 0.5 ? 0 : 1);
     this.broadcast({ type: 'GAME_START', firstPlayerSlot: this.currentTurn + 1 });
-    // Send each player their own final placements (needed if auto-placed by server)
     for (let i = 0; i < 2; i++) {
       if (!this.players[i]?.isBot) {
         this.send(i, { type: 'YOUR_PLACEMENTS', placements: this.placements[i] });
@@ -103,13 +105,25 @@ export class Room {
 
   _startTurnTimer() {
     clearTimeout(this._turnTimer);
+    this.broadcast({ type: 'TURN_TIMER', slot: this.currentTurn + 1, secs: TURN_TIMEOUT_SECS });
     this._turnTimer = setTimeout(() => this._onTurnTimeout(), TURN_TIMEOUT_MS);
   }
 
   _onTurnTimeout() {
     if (this.state !== 'active') return;
-    const winner = this.currentTurn === 0 ? 1 : 0;
-    this._endGame(winner);
+    const targetIndex = this.currentTurn === 0 ? 1 : 0;
+    const board = this.boards[targetIndex];
+    const available = [];
+    for (let r = 0; r < board.length; r++) {
+      for (let c = 0; c < board[r].length; c++) {
+        const s = board[r][c].state;
+        if (s === 'empty' || s === 'ship') available.push([r, c]);
+      }
+    }
+    if (available.length > 0) {
+      const coord = available[Math.floor(Math.random() * available.length)];
+      this.fireShot(this.currentTurn, coord);
+    }
   }
 
   fireShot(slotIndex, coordinate) {
@@ -120,7 +134,6 @@ export class Room {
     const result = processShot(this.boards[targetIndex], this.placements[targetIndex], coordinate);
 
     if (result.error) return result;
-
 
     this.boards[targetIndex] = result.board;
     if (result.sunkShip) this.sunkShips[targetIndex].push(result.sunkShip.name);
@@ -156,10 +169,15 @@ export class Room {
     clearTimeout(this._turnTimer);
     clearTimeout(this._placementTimer);
 
-    if (this.type === 'bot' && this.botDifficulty === 'impossible' && winnerIndex === 0) {
+    const isImpossibleWin = (this.type === 'bot' || this.type === 'daily')
+      && this.botDifficulty === 'impossible'
+      && winnerIndex === 0;
+
+    if (isImpossibleWin) {
       const duration = Math.round((Date.now() - this.gameStartTime) / 1000);
-      const rankingToken = createRankingToken(duration);
-      this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken });
+      const rankingDay = this.type === 'daily' ? todayString() : null;
+      const rankingToken = createRankingToken(duration, rankingDay);
+      this.send(0, { type: 'GAME_OVER', winner: 1, rankingToken, rankingDay });
     } else {
       this.broadcast({ type: 'GAME_OVER', winner: winnerIndex + 1 });
     }
@@ -172,14 +190,10 @@ export class Room {
     if (this.state === 'finished') return;
 
     const opponentIndex = slotIndex === 0 ? 1 : 0;
-    let secondsRemaining = RECONNECT_TIMEOUT_MS / 1000;
-
-    this.send(opponentIndex, { type: 'OPPONENT_DISCONNECTED', secondsRemaining });
+    this.send(opponentIndex, { type: 'OPPONENT_DISCONNECTED', secondsRemaining: RECONNECT_TIMEOUT_MS / 1000 });
 
     this._reconnectTimers[slotIndex] = setTimeout(() => {
-      if (!this.players[slotIndex]?.connected) {
-        this._endGame(opponentIndex);
-      }
+      if (!this.players[slotIndex]?.connected) this._endGame(opponentIndex);
     }, RECONNECT_TIMEOUT_MS);
   }
 

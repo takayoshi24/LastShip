@@ -48,7 +48,7 @@ export function applyPlacements(board, placements) {
   return next;
 }
 
-export function randomPlacement(existingPlacements = []) {
+export function randomPlacement(existingPlacements = [], rand = Math.random) {
   const placed = [...existingPlacements];
   const occupied = new Set();
 
@@ -66,11 +66,11 @@ export function randomPlacement(existingPlacements = []) {
     let attempts = 0;
     while (attempts < 1000) {
       attempts++;
-      const orientation = Math.random() < 0.5 ? 'H' : 'V';
+      const orientation = rand() < 0.5 ? 'H' : 'V';
       const maxRow = orientation === 'V' ? GRID_SIZE - ship.size : GRID_SIZE - 1;
       const maxCol = orientation === 'H' ? GRID_SIZE - ship.size : GRID_SIZE - 1;
-      const row = Math.floor(Math.random() * (maxRow + 1));
-      const col = Math.floor(Math.random() * (maxCol + 1));
+      const row = Math.floor(rand() * (maxRow + 1));
+      const col = Math.floor(rand() * (maxCol + 1));
       const cells = shipCells([row, col], orientation, ship.size);
 
       if (cells.every(([r, c]) => !occupied.has(`${r},${c}`))) {

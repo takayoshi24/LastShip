@@ -17,7 +17,7 @@ export default function CountdownTimer({ seconds, onExpire }) {
 
   const mins = String(Math.floor(left / 60)).padStart(2, '0');
   const secs = String(left % 60).padStart(2, '0');
-  const urgent = left <= 30;
+  const urgent = left <= 10;
 
   return (
     <span className={`timer ${urgent ? 'urgent' : ''}`}>{mins}:{secs}</span>

@@ -3,6 +3,43 @@
 ---
 ## 2026-07-07 — 1 commit on master
 
+**Scope:** feat — per-turn timer, PvP chat + emoji board reactions, daily challenge
+
+### feat: 30s per-turn timer, PvP chat with emoji board reactions, daily Impossible challenge
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-07
+
+**Per-turn timer:** `TURN_TIMEOUT_MS` reduced from 5 minutes to 30 seconds. Each turn start broadcasts `TURN_TIMER` so both clients reset their countdown in sync. On timeout the server auto-fires a random valid shot instead of ending the game, keeping matches moving without being punishing. `CountdownTimer`'s urgent threshold lowered from 30s to 10s (30s was always-urgent with a 30s timer). The countdown is now visible for both players' turns.
+
+**PvP chat + emoji board reactions:** New `CHAT` and `EMOJI` WebSocket message types relayed by the server. `ChatBox.jsx` renders a message history, a text input, and 8 emoji shortcut buttons (😂💀🔥👍😤🎯😱🤡). Text messages appear in a scrolling panel below the boards. When an emoji is sent, the server broadcasts it to both players and each client shows it as a large spring-animated overlay on the relevant board for 3 seconds — your emoji appears on your fleet board, the opponent's emoji appears on your attack board. Chat is shown only in PvP games (`gameMode === 'pvp'`).
+
+**Daily Challenge:** A new `PLAY_DAILY` message creates an Impossible bot room with a seeded-random placement derived from today's UTC date (mulberry32 PRNG, seed = hash of YYYY-MM-DD). Every player who plays the daily challenge that day faces the identical bot layout. Winners receive a `rankingDay`-stamped token redeemable at `POST /api/rankings`; the server routes daily entries into per-day files (`server/data/daily-YYYY-MM-DD.json`). `GET /api/rankings/daily?day=` serves each day's leaderboard. The ranking page gains two tabs: "Today's Challenge" and "All-Time Impossible".
+
+**Files changed:**
+- `server/src/core/seededRandom.js` +20 (new) — mulberry32 PRNG, `todayString`, `dailySeed`
+- `server/src/core/gameLogic.js` +1 / -1 — `randomPlacement` accepts optional `rand` param
+- `server/src/room/Room.js` — full rewrite: 30s timer, `TURN_TIMER` broadcast, auto-fire on timeout, daily placement, `rankingDay` in game-over
+- `server/src/handlers/messageRouter.js` +30 — `PLAY_DAILY`, `CHAT`, `EMOJI` handlers
+- `server/src/rankings/storage.js` +16 — `getDailyRankings`, `addDailyEntry`, per-day file path
+- `server/src/rankings/tokens.js` +1 — `day` param stored in token
+- `server/src/server.js` +14 — `/api/rankings/daily` GET, token-aware daily routing in POST
+- `client/src/context/GameContext.jsx` — `messages`, `boardEmoji`, `turnTimerTick`, `gameMode`, `rankingDay` state; `CHAT`, `EMOJI`, `CLEAR_EMOJI`, `TURN_TIMER` reducers; emoji auto-clear timeout
+- `client/src/components/ChatBox.jsx` +50 (new) — chat + emoji buttons
+- `client/src/components/GameBoard.jsx` +20 — 30s timer wired to `turnTimerTick`; emoji overlays on both boards; `<ChatBox>` in PvP
+- `client/src/components/CountdownTimer.jsx` +1 — urgent threshold 30 → 10
+- `client/src/components/GameOver.jsx` — daily vs regular copy text
+- `client/src/pages/LobbyPage.jsx` +6 — Daily Challenge button
+- `client/src/pages/RankingPage.jsx` — two tabs, shared `Table` component, `todayISO` helper
+- `client/src/index.css` +80 — btn-daily, board-emoji, chat-box, chat-msg, emoji-btn, ranking-tabs
+
+---
+
+**Summary:** Three features land together. The per-turn timer replaces an idle-forever 5-minute timeout with a 30-second countdown visible to both players; timing out auto-fires a random shot rather than forfeiting, so games always progress. PvP chat gives players a text channel and emoji shortcuts that trigger spring-animated reactions overlaid on the game boards (your emoji on your fleet, opponent's on the attack board), adding personality without interfering with gameplay. The daily challenge gives every player the same seeded Impossible bot layout each day, with a separate daily leaderboard tab on the ranking page, creating a shared competitive moment with a natural reason to come back each day.
+
+---
+## 2026-07-07 — 1 commit on master
+
 **Scope:** fix — replace shot count with game duration in Impossible ranking
 
 ### fix: rank by game duration instead of shot count

@@ -7,7 +7,7 @@ export default function GameOver() {
   const navigate = useNavigate();
   const won = state.winner === state.playerSlot;
   const [rankName, setRankName] = useState('');
-  const [rankStatus, setRankStatus] = useState('idle'); // idle | submitting | done | error
+  const [rankStatus, setRankStatus] = useState('idle');
 
   function goLobby() {
     reset();
@@ -30,6 +30,8 @@ export default function GameOver() {
     }
   }
 
+  const isDaily = !!state.rankingDay;
+
   return (
     <div className="gameover-overlay">
       <div className="gameover-card">
@@ -40,7 +42,9 @@ export default function GameOver() {
 
         {won && state.rankingToken && (
           <div className="ranking-submit">
-            <p className="ranking-unlock">You conquered Impossible — enter the hall of fame!</p>
+            <p className="ranking-unlock">
+              {isDaily ? "Today's challenge complete — enter the daily ranking!" : 'You conquered Impossible — enter the hall of fame!'}
+            </p>
             {rankStatus === 'done' ? (
               <p className="ranking-success">
                 Saved! <Link to="/ranking" className="ranking-link" onClick={reset}>View Rankings</Link>
@@ -55,11 +59,8 @@ export default function GameOver() {
                   disabled={rankStatus === 'submitting'}
                   autoFocus
                 />
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={rankStatus === 'submitting' || !rankName.trim()}
-                >
+                <button type="submit" className="btn-primary"
+                  disabled={rankStatus === 'submitting' || !rankName.trim()}>
                   {rankStatus === 'submitting' ? 'Saving...' : 'Submit'}
                 </button>
                 {rankStatus === 'error' && <p className="error-banner">Failed to save. Try again.</p>}

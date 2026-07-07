@@ -122,6 +122,38 @@ export function handleMessage(ws, rawData, wsToRoom) {
       break;
     }
 
+    case 'PLAY_DAILY': {
+      const room = createRoom('daily', 'impossible');
+      const { slot, token } = room.addPlayer(ws);
+      room.addBot();
+      wsToRoom.set(ws, { roomCode: room.code, slotIndex: slot - 1 });
+      send(ws, { type: 'ROOM_READY', roomCode: room.code, playerSlot: slot, playerToken: token, gameMode: 'daily' });
+      room.startPlacement();
+      break;
+    }
+
+    case 'CHAT': {
+      const context = wsToRoom.get(ws);
+      if (!context?.roomCode) return;
+      const room = getRoom(context.roomCode);
+      if (!room) return;
+      const text = typeof msg.text === 'string' ? msg.text.trim().slice(0, 200) : '';
+      if (!text) return;
+      room.broadcast({ type: 'CHAT', text, senderSlot: context.slotIndex + 1 });
+      break;
+    }
+
+    case 'EMOJI': {
+      const context = wsToRoom.get(ws);
+      if (!context?.roomCode) return;
+      const room = getRoom(context.roomCode);
+      if (!room) return;
+      const VALID = ['😂', '💀', '🔥', '👍', '😤', '🎯', '😱', '🤡'];
+      if (!VALID.includes(msg.emoji)) return;
+      room.broadcast({ type: 'EMOJI', emoji: msg.emoji, senderSlot: context.slotIndex + 1 });
+      break;
+    }
+
     case 'FORFEIT': {
       const context = wsToRoom.get(ws);
       if (!context?.roomCode) return;

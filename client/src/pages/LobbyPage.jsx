@@ -37,6 +37,10 @@ export default function LobbyPage() {
     sendMsg({ type: 'PLAY_BOT', difficulty });
   }
 
+  function handleDailyChallenge() {
+    sendMsg({ type: 'PLAY_DAILY' });
+  }
+
   return (
     <div className="lobby">
       <h1>LastShip</h1>
@@ -70,6 +74,10 @@ export default function LobbyPage() {
               <button onClick={() => handlePlayBot('impossible')} className="btn-difficulty impossible">Impossible</button>
             </div>
           </div>
+
+          <button onClick={handleDailyChallenge} className="btn-daily">
+            Daily Challenge — Impossible
+          </button>
 
           <div className="divider">or join a room</div>
           <form onSubmit={handleJoinRoom} className="join-form">

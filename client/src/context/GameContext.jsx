@@ -4,7 +4,7 @@ import { send, subscribe, init } from '../services/websocket.js';
 const GameContext = createContext(null);
 
 const initialState = {
-  screen: 'lobby',        // lobby | placement | game | gameover
+  screen: 'lobby',
   roomCode: null,
   playerSlot: null,
   myBoard: null,
@@ -15,12 +15,17 @@ const initialState = {
   lastShotResult: null,
   winner: null,
   rankingToken: null,
+  rankingDay: null,
   opponentDisconnected: false,
   reconnecting: false,
   reconnectFailed: false,
   connectionStatus: 'connecting',
   placementError: null,
   onlineCount: 0,
+  messages: [],
+  boardEmoji: null,
+  turnTimerTick: 0,
+  gameMode: 'pvp',
 };
 
 function reducer(state, action) {
@@ -33,7 +38,15 @@ function reducer(state, action) {
     case 'ROOM_READY':
       localStorage.setItem('lastship_player_token', action.playerToken);
       localStorage.setItem('lastship_room_code', action.roomCode);
-      return { ...state, roomCode: action.roomCode, playerSlot: action.playerSlot, screen: 'placement', placementError: null };
+      return {
+        ...state,
+        roomCode: action.roomCode,
+        playerSlot: action.playerSlot,
+        screen: 'placement',
+        placementError: null,
+        messages: [],
+        gameMode: action.gameMode ?? 'pvp',
+      };
 
     case 'PLACEMENT_ACCEPTED':
       return { ...state, screen: 'placed' };
@@ -48,7 +61,28 @@ function reducer(state, action) {
       return { ...state, lastShotResult: action };
 
     case 'GAME_OVER':
-      return { ...state, screen: 'gameover', winner: action.winner, rankingToken: action.rankingToken ?? null };
+      return {
+        ...state,
+        screen: 'gameover',
+        winner: action.winner,
+        rankingToken: action.rankingToken ?? null,
+        rankingDay: action.rankingDay ?? null,
+      };
+
+    case 'TURN_TIMER':
+      return { ...state, turnTimerTick: state.turnTimerTick + 1 };
+
+    case 'CHAT':
+      return {
+        ...state,
+        messages: [...state.messages, { text: action.text, senderSlot: action.senderSlot, id: Date.now() + Math.random() }],
+      };
+
+    case 'EMOJI':
+      return { ...state, boardEmoji: { emoji: action.emoji, senderSlot: action.senderSlot, id: Date.now() } };
+
+    case 'CLEAR_EMOJI':
+      return { ...state, boardEmoji: null };
 
     case 'OPPONENT_DISCONNECTED':
       return { ...state, opponentDisconnected: true };
@@ -69,6 +103,7 @@ function reducer(state, action) {
         playerSlot: gs.playerSlot ?? state.playerSlot,
         reconnecting: false,
         reconnectFailed: false,
+        turnTimerTick: state.turnTimerTick + 1,
       };
     }
 
@@ -125,10 +160,9 @@ export function GameProvider({ children }) {
   useEffect(() => {
     init();
     const unsub = subscribe((msg) => {
-      if (msg.type === '_DISCONNECTED' || msg.type === '_RECONNECT_EXHAUSTED') {
-        dispatch(msg);
-      } else {
-        dispatch(msg);
+      dispatch(msg);
+      if (msg.type === 'EMOJI') {
+        setTimeout(() => dispatch({ type: 'CLEAR_EMOJI' }), 3000);
       }
     });
     return unsub;

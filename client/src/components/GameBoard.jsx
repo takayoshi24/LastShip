@@ -8,6 +8,7 @@ import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import CountdownTimer from './CountdownTimer.jsx';
 import SunkShipsList from './SunkShipsList.jsx';
+import ChatBox from './ChatBox.jsx';
 import { triggerExplosion } from '../services/explosion.js';
 import { cellsFor } from '../utils/grid.js';
 
@@ -171,7 +172,7 @@ export default function GameBoard() {
         <span className={`turn-indicator ${isMyTurn ? 'my-turn' : 'opp-turn'}`}>
           {isMyTurn ? 'Your turn — fire!' : "Opponent's turn"}
         </span>
-        {isMyTurn && <CountdownTimer seconds={300} key={state.currentTurn} onExpire={() => {}} />}
+        <CountdownTimer seconds={30} key={state.turnTimerTick} onExpire={() => {}} />}
         <div className="volume-control">
           {volume === 0 ? <LuVolumeX /> : <LuVolume2 />}
           <input
@@ -199,6 +200,7 @@ export default function GameBoard() {
       <div className="boards-container">
         <div className="board-section">
           <h3>Your Fleet</h3>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
           <div className="grid" ref={gridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
 
             {Array.from({ length: GRID_SIZE }, (_, r) =>
@@ -239,11 +241,21 @@ export default function GameBoard() {
               })
             )}
           </div>
-
+          <AnimatePresence>
+            {state.boardEmoji?.senderSlot === state.playerSlot && (
+              <motion.div key={state.boardEmoji.id} className="board-emoji"
+                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+                {state.boardEmoji.emoji}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          </div>
         </div>
 
         <div className="board-section">
           <h3>Your Attack</h3>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
           <div className={`grid ${isMyTurn ? 'interactive' : 'locked'}`} ref={attackGridRef} style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, var(--cell))` }}>
             {Array.from({ length: GRID_SIZE }, (_, r) =>
               Array.from({ length: GRID_SIZE }, (_, c) => {
@@ -286,10 +298,21 @@ export default function GameBoard() {
               })
             )}
           </div>
+          <AnimatePresence>
+            {state.boardEmoji?.senderSlot !== state.playerSlot && state.boardEmoji && (
+              <motion.div key={state.boardEmoji.id} className="board-emoji"
+                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }}>
+                {state.boardEmoji.emoji}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          </div>
         </div>
       </div>
 
       <SunkShipsList sunkShips={state.sunkShips} playerSlot={state.playerSlot} />
+      {state.gameMode === 'pvp' && <ChatBox />
     </div>
   );
 }
