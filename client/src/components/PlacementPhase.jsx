@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import { useGame } from '../context/GameContext.jsx';
 import { FLEET_CONFIG, GRID_SIZE } from '../config/fleet.js';
 import { cellsFor } from '../utils/grid.js';
@@ -42,6 +42,7 @@ function ShipDraggable({ ship, orientation }) {
         gridTemplateColumns: orientation === 'H' ? `repeat(${ship.size}, var(--cell))` : 'var(--cell)',
         gridTemplateRows: orientation === 'V' ? `repeat(${ship.size}, var(--cell))` : 'var(--cell)',
         cursor: 'grab',
+        touchAction: 'none',
       }}
     >
       {Array.from({ length: ship.size }, (_, i) => (
@@ -65,6 +66,7 @@ export default function PlacementPhase() {
   const { state, sendMsg, dispatch } = useGame();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
   const [placements, setPlacements] = useState([]);
   const [orientation, setOrientation] = useState('H');

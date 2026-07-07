@@ -1,6 +1,25 @@
 # Changelog
 
 ---
+## 2026-07-07 — 1 commit on master
+
+**Scope:** Bug fix — ship dragging broken on Android during placement phase
+
+### fix: enable ship drag on Android with TouchSensor and touch-action: none
+
+- **Author:** Kamil Jendzul
+- **Date:** 2026-07-07
+
+Android Chrome intercepts touch events for native scrolling before dnd-kit's `PointerSensor` can accumulate the 5 px distance threshold, so the drag was cancelled before it started. Three targeted changes fix this: `touchAction: 'none'` added to the `ShipDraggable` inline style tells Android to hand all touch events to JavaScript rather than reserving them for scroll; `TouchSensor` imported and registered alongside `PointerSensor` uses native `touchstart`/`touchmove` events directly, bypassing the Pointer Events API layer that Android was short-circuiting; and the `TouchSensor` uses a delay-based activation constraint (`delay: 150ms, tolerance: 5`) which is more reliable on Android than the distance-based constraint used for mouse/stylus.
+
+**Files changed:**
+- `client/src/components/PlacementPhase.jsx` — import `TouchSensor`; add `TouchSensor` to `useSensors`; add `touchAction: 'none'` to `ShipDraggable` style
+
+---
+
+**Summary:** Ship placement was completely non-functional on Android — touching a ship and dragging had no effect. The root cause was Android Chrome consuming touch events for scroll detection before dnd-kit could register a drag, combined with the absence of `touch-action: none` which is required to opt an element out of native touch handling. Adding `TouchSensor` with a short hold delay and `touchAction: 'none'` on the draggable restores full drag-and-drop placement on Android without affecting iPhone or desktop.
+
+---
 ## 2026-07-05 — 1 commit on feat/audio-hit-miss-volume
 
 **Scope:** Sound effects for hit/miss and manual volume control
